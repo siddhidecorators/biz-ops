@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SmallBiz Ops">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C66333"/>
+      <stop offset="1" stop-color="#A04A22"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" ry="100" fill="url(#g)"/>
+  <text x="50%" y="56%" text-anchor="middle" dominant-baseline="middle"
+        font-family="'Times New Roman', Georgia, serif" font-weight="700"
+        font-size="320" fill="#FBF7F2" letter-spacing="-8">S</text>
+</svg>
