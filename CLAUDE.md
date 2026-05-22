@@ -141,7 +141,8 @@ supabase/migrations/
 
 ## Build state (May 2026)
 
-Phase 1 features complete:
+**Phase 1 — complete and LIVE in production.** Pankaj can use the app for real
+billing today.
 
 - ✅ Auth + first-login onboarding wizard
 - ✅ Customers CRUD (NCR-top state picker, Delhi default on new)
@@ -156,8 +157,33 @@ Phase 1 features complete:
   Paid + Balance Due lines, "Paid in full" stamp, amount in words, default T&Cs,
   payment details + signature, terracotta accents)
 - ✅ Settings page (reuses OnboardingForm)
-- ✅ PWA manifest + service worker (prod only)
-- ⏳ Vercel deploy — manual, see `DEPLOY.md`
+- ✅ PWA manifest + service worker (prod only) — installable on phone home screen
+- ✅ Deployed to Vercel under Pankaj's team, auto-deploys on `git push`
+
+## Production deployment (May 2026)
+
+- **Live URL** → https://biz-ops-kohl.vercel.app (also resolves at
+  `biz-ops-siddhidecorators-projects.vercel.app`)
+- **GitHub repo** → https://github.com/siddhidecorators/biz-ops (Pankaj-owned,
+  private)
+- **Vercel team** → `siddhidecorators-projects` (Pankaj-owned, hobby tier)
+- **CI/CD** — every push to `main` triggers a Vercel build. Preview deploys are
+  created for branches/PRs automatically.
+- **Owner email** — `siddhidecoratorsdelhi@gmail.com` (Pankaj). All three clouds
+  (Supabase, Google Cloud OAuth, Vercel, GitHub) sit under this email.
+- **Old deployment** at `smallbiz-ops.vercel.app` (under `arnavgarg-s-projects`)
+  is **deprecated** — schedule for deletion. The duplicate doesn't break
+  anything because the Supabase project ref is the same.
+
+## Open polish items (none blocking)
+
+- Sign-in page `<title>` renders as "Sign in · SmallBiz Ops · SmallBiz Ops"
+  (duplicated suffix). Fix: the page sets `title: 'Sign in · SmallBiz Ops'`
+  while the root layout uses a `'%s · SmallBiz Ops'` template. Change the
+  page to just `title: 'Sign in'`.
+- Vendor a TTF with ₹ glyph for the PDF (currently uses "Rs" prefix as
+  Helvetica/Times don't include U+20B9). Host the TTF in Supabase Storage or
+  `public/fonts/` and register via `@react-pdf/renderer`'s `Font.register`.
 
 ## What's intentionally NOT built (Phase 2+)
 
@@ -206,11 +232,55 @@ you're stuck reading SQL migrations to inspect schema.
 - **Ship-To repeats the billing address silently** when no override. Don't
   re-add a "(same as billing)" hint — Pankaj said it looked apologetic.
 
-## Next priorities (in order)
+## Phase 2 plan (next session)
 
-1. **Ship to Vercel** — follow `DEPLOY.md` (~15 min one-time)
-2. **Customer-facing quote accept link** — slug-based, no-auth route, WhatsApp share
-3. **Recent activity feed** on home dashboard
-4. **Vendor a TTF with ₹** for the PDF (host in Supabase Storage or `public/fonts/`)
-5. **Offline draft caching** for the quote form (real SW caching + IndexedDB)
-6. **Multi-tenant signup flow** when a second client lands
+The highest-priority unbuilt feature is **team invites** — without it, Pankaj's
+staff can't share his org's data. Every new Google sign-in creates a separate
+walled org today (the `handle_new_user` trigger fires on every `auth.users`
+insert and creates a fresh `orgs` row).
+
+### Phase 2.1 — Team invites (start here, ~1.5 hours)
+
+1. **Migration `0003_team_invites.sql`** — new table `org_invites` (org_id,
+   email, role, invited_by, created_at, unique on org_id+email). Update
+   `handle_new_user` trigger: before creating a new org, check if the
+   sign-in email matches a pending invite; if yes, attach the new profile
+   to that invite's org with the invite's role and delete the invite row.
+2. **`/settings/team` page** — current members list (name, role, "Remove"),
+   pending invites list ("Revoke", "Resend"), invite form (email + role
+   dropdown). Owner-only access via `current_org_role()` check.
+3. **Server actions** in a new `(app)/settings/team/actions.ts`:
+   - `inviteMember(email, role)` — owner-only, inserts into `org_invites`.
+     Use Supabase Auth's `inviteUserByEmail()` to send the magic link.
+   - `revokeInvite(inviteId)` — owner-only delete from `org_invites`.
+   - `removeMember(profileId)` — owner-only; set `profiles.org_id = null`.
+   - `changeRole(profileId, role)` — owner-only.
+4. **Role-based UI gates** — for v1, only gate `/settings/team` to Owner
+   role. Everyone in the org can do everything else (Phase 2.5 can split
+   Admin/Staff later).
+5. **Cleanup orphan test orgs** in `auth.users` from any multi-tenant
+   testing done in Phase 1. Owner can do this via Supabase dashboard.
+
+### Phase 2.2 — beyond invites
+
+In rough priority order (Pankaj's actual workflow needs):
+
+- **Customer-facing accept/decline link** for quotes — slug-based no-auth
+  route, customer taps Accept/Decline, status updates back in the app.
+  Closes the WhatsApp acceptance loop.
+- **Inquiries / leads register** — captures walk-in and call leads BEFORE
+  they become quotes. Status: new → contacted → quoted → accepted/declined.
+  Linkable to a customer once they convert. Reminders for stale leads.
+- **Recent activity feed** on home dashboard — "Last 7 days: 3 quotes sent,
+  1 converted, Rs 45K received".
+- **Two-way WhatsApp** — replaces the manual "share PDF on WhatsApp" step.
+  Use WhatsApp Business API (Meta) or a wrapper like Wati/AiSensy.
+- **Vendor a TTF with ₹** for the PDF — host in Supabase Storage or
+  `public/fonts/`, register via `Font.register` so currency reads "₹ 1,250"
+  in PDFs instead of "Rs 1,250".
+- **Offline draft caching** for the quote form — real SW caching +
+  IndexedDB so quotes can be drafted with patchy mobile data.
+- **Sales / purchases registers** + **GSTR-1 export** when Pankaj's
+  turnover trajectory warrants it (>₹40L or so).
+- **Multi-tenant signup flow** when a second freelance client signs on.
+  The schema is ready; need a self-serve sign-up UI.
