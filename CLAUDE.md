@@ -232,55 +232,175 @@ you're stuck reading SQL migrations to inspect schema.
 - **Ship-To repeats the billing address silently** when no override. Don't
   re-add a "(same as billing)" hint — Pankaj said it looked apologetic.
 
-## Phase 2 plan (next session)
+## Phase 2 plan — strategic roadmap
 
-The highest-priority unbuilt feature is **team invites** — without it, Pankaj's
-staff can't share his org's data. Every new Google sign-in creates a separate
-walled org today (the `handle_new_user` trigger fires on every `auth.users`
-insert and creates a fresh `orgs` row).
+**Frame:** This app is the **multi-tenant SaaS template** Arnav will resell to
+other Delhi small businesses. Every architectural decision in Phase 2 should
+help future clients inherit the same snappy, app-like experience by default.
 
-### Phase 2.1 — Team invites (start here, ~1.5 hours)
+Decided 2026-05-22 — Arnav explicitly asked for the "best plan even if it
+requires significant architectural changes". Don't patch; refactor.
 
-1. **Migration `0003_team_invites.sql`** — new table `org_invites` (org_id,
+**The current ceiling:** every page is a Server Component → every navigation
+hits the network → blank screen → render. Fine for 10 users, sluggish for
+daily mobile use. The fix is architectural, not band-aid pingers/caching.
+
+### Phase 2A — Data layer refactor (start here, ~4-6 hours)
+
+**Single biggest UX win of the entire plan.** After this, the app feels
+native. Tap → render. No blank screens. Forms feel instant.
+
+1. **Add TanStack Query** + `@tanstack/query-sync-storage-persister` for
+   IndexedDB cache persistence across sessions.
+2. **Move all data fetching from Server Components to Client Components**
+   that read via the Supabase JS browser client. RLS still enforced
+   server-side — security unchanged.
+3. **Server Components become a thin shell** — they only do the initial
+   auth check + render the layout. All data hydration is client-side.
+4. **Optimistic UI on every mutation:**
+   - Save customer → row appears in list INSTANTLY; server confirms in
+     background; reverts on error.
+   - Record payment → status pill flips immediately.
+   - Delete → row vanishes immediately.
+5. **Skeleton loaders** on every data list — never a blank screen, always
+   shows structure (page header, table outline, button placeholders).
+6. **Real service worker** caching the app shell (HTML/JS/CSS) + last-viewed
+   data with stale-while-revalidate. Second launch is INSTANT from cache.
+7. **Static shell** — `/sign-in` and `/onboarding` become statically
+   generated (no server function call per visit).
+8. **`vercel.json`** sets `"regions": ["bom1"]` to colocate serverless
+   functions with Supabase Mumbai (~150-250ms saved per query).
+9. **Cron-job.org** ping every 5 min to keep the few remaining server
+   functions warm (eliminates Vercel Hobby cold starts for free).
+10. **Combine 4 dashboard count queries into a single RPC**
+    `get_dashboard_counts(org_id)` — one network round trip instead of four.
+
+What Pankaj will feel: open app → INSTANT; tap any nav → renders before
+finger lifts; save anything → success appears with zero delay. The app
+genuinely feels like a native app despite being a web PWA.
+
+### Phase 2B — Team invites + role-based access (~1.5 hours)
+
+After 2A's snappy foundation, this is fast to build and inherits the feel.
+
+1. Migration `0003_team_invites.sql` — new `org_invites` table (org_id,
    email, role, invited_by, created_at, unique on org_id+email). Update
-   `handle_new_user` trigger: before creating a new org, check if the
-   sign-in email matches a pending invite; if yes, attach the new profile
-   to that invite's org with the invite's role and delete the invite row.
-2. **`/settings/team` page** — current members list (name, role, "Remove"),
-   pending invites list ("Revoke", "Resend"), invite form (email + role
-   dropdown). Owner-only access via `current_org_role()` check.
-3. **Server actions** in a new `(app)/settings/team/actions.ts`:
+   `handle_new_user` trigger: before creating a new org, check for a
+   matching pending invite; if yes, attach the new profile to that invite's
+   org with the invite's role and delete the invite row.
+2. `/settings/team` page — current members list (name, role, "Remove"),
+   pending invites list ("Revoke", "Resend"), invite form (email + role).
+   Owner-only access via `current_org_role()` check.
+3. Server actions:
    - `inviteMember(email, role)` — owner-only, inserts into `org_invites`.
      Use Supabase Auth's `inviteUserByEmail()` to send the magic link.
-   - `revokeInvite(inviteId)` — owner-only delete from `org_invites`.
+   - `revokeInvite(inviteId)` — owner-only delete.
    - `removeMember(profileId)` — owner-only; set `profiles.org_id = null`.
    - `changeRole(profileId, role)` — owner-only.
-4. **Role-based UI gates** — for v1, only gate `/settings/team` to Owner
-   role. Everyone in the org can do everything else (Phase 2.5 can split
-   Admin/Staff later).
-5. **Cleanup orphan test orgs** in `auth.users` from any multi-tenant
-   testing done in Phase 1. Owner can do this via Supabase dashboard.
+4. Role-based UI gates — for v1, only gate `/settings/team` to Owner.
+   Everyone else in the org can do everything (split Admin/Staff later).
+5. Clean up orphan test orgs from Phase 1 multi-tenant testing (via
+   Supabase dashboard → Authentication → Users).
 
-### Phase 2.2 — beyond invites
+### Phase 2C — Offline-first (~3-4 hours)
 
-In rough priority order (Pankaj's actual workflow needs):
+**Critical for Indian small business reality.** Pitampura shops have patchy
+4G. Pankaj needs to draft a quote at a customer's home (no signal) and have
+it sync when he's back near a tower.
 
-- **Customer-facing accept/decline link** for quotes — slug-based no-auth
-  route, customer taps Accept/Decline, status updates back in the app.
-  Closes the WhatsApp acceptance loop.
-- **Inquiries / leads register** — captures walk-in and call leads BEFORE
-  they become quotes. Status: new → contacted → quoted → accepted/declined.
-  Linkable to a customer once they convert. Reminders for stale leads.
-- **Recent activity feed** on home dashboard — "Last 7 days: 3 quotes sent,
-  1 converted, Rs 45K received".
-- **Two-way WhatsApp** — replaces the manual "share PDF on WhatsApp" step.
-  Use WhatsApp Business API (Meta) or a wrapper like Wati/AiSensy.
-- **Vendor a TTF with ₹** for the PDF — host in Supabase Storage or
-  `public/fonts/`, register via `Font.register` so currency reads "₹ 1,250"
-  in PDFs instead of "Rs 1,250".
-- **Offline draft caching** for the quote form — real SW caching +
-  IndexedDB so quotes can be drafted with patchy mobile data.
-- **Sales / purchases registers** + **GSTR-1 export** when Pankaj's
-  turnover trajectory warrants it (>₹40L or so).
-- **Multi-tenant signup flow** when a second freelance client signs on.
-  The schema is ready; need a self-serve sign-up UI.
+1. IndexedDB persistence of the TanStack Query cache via
+   `@tanstack/query-sync-storage-persister`.
+2. **Mutation queue** — when offline, save mutations to IndexedDB.
+   When back online, sync to server in order.
+3. **Sync status badges** — "Synced ✓" / "Will sync when online ↻" on
+   rows that haven't reached the server yet.
+4. **Service worker intercept** — when offline, API calls return cached
+   data; when online, fall through to network.
+5. **Conflict resolution** — last-write-wins for v1 (simple); proper
+   merge strategy later if needed.
+
+After this Pankaj can write quotes in his customer's home, in the basement
+parking, on the metro — works everywhere. Syncs the moment connectivity
+returns.
+
+### Phase 2D — Native wrapper (Capacitor) (~2 hours)
+
+**Goal: App Store / Play Store distribution + native APIs**
+
+Defer until clients ask. PWA install-to-home already covers 90% of the
+"feels like an app" win. Build this only when:
+- Pankaj or another client wants to publish on Play Store
+- A feature needs native camera/notifications
+
+When the time comes:
+1. Wrap with **Capacitor** (CLI: `npm install @capacitor/core @capacitor/cli`).
+2. **Native camera** plugin → product photos, customer GST certificate
+   capture, signed-quote scans.
+3. **Push notifications** plugin → "Invoice paid", "Quote accepted",
+   "Daily summary" — wire to Supabase Realtime triggers.
+4. Build APK → upload to Play Store (one-time ₹1,800 dev fee).
+5. iOS — defer unless a client has iOS customers (Apple Dev Program is
+   ₹8,300/year).
+
+### Phase 2E — Multi-tenant template (~2-3 hours)
+
+**Goal: clone for next client in 30 minutes, not 30 hours.**
+
+Only build this when client #2 signs on. Premature abstraction is the
+enemy. When ready:
+
+1. **Theme system** — brand color, logo, tagline, accent fonts pulled
+   from `orgs` table → applied to UI + PDF dynamically. Already half-done
+   (`brand_color` exists; needs theme wiring).
+2. **Subdomain routing** (requires owning a domain like `bizops.in`) —
+   Pankaj at `siddhi.bizops.in`, next client at `<their-name>.bizops.in`.
+   Each org sees their own data + brand. Use Next 16 middleware (proxy)
+   for the routing.
+3. **Self-serve onboarding** — `bizops.in/signup` → Google sign-in → org
+   created → 3-step wizard → live. No manual setup per new client.
+4. **Feature flags table** — per-tenant toggles for industry-specific
+   features (interior decorator vs salon vs photographer). Tenants only
+   see the features relevant to them.
+5. **White-label option** — hide "Powered by SmallBiz Ops" footer for
+   premium-tier clients.
+
+Revenue math after this:
+- ₹2,000/month per client × 10 clients = ₹20K/month recurring
+- × 50 clients = ₹100K/month
+- Each client's data fully isolated (existing RLS handles this)
+- Ship one update → all clients benefit instantly
+
+### Execution order (recommended)
+
+| Phase | Effort | When |
+|---|---|---|
+| 2A — Data layer refactor | 4-6 h | **NEXT SESSION — DO FIRST.** Foundation everything else inherits. |
+| 2B — Team invites | 1.5 h | Session after 2A. Quick + high operational value. |
+| 2C — Offline-first | 3-4 h | After Pankaj uses the app 2-3 weeks and confirms patchy-data pain. |
+| 2D — Native wrapper | 2 h | When ready to publish on Play Store. Could be months. |
+| 2E — Multi-tenant template | 2-3 h | When client #2 signs on. Don't build until needed. |
+
+**Total: ~12-15 hours across multiple sessions.** Each phase ships
+independently and adds value. At the end Arnav has a real multi-tenant
+ops platform he can resell.
+
+### Notes for the Claude that picks up Phase 2A
+
+- Read this whole CLAUDE.md first — every Phase 1 convention still applies.
+- The architectural shift is significant: Server Component data fetching →
+  Client Component data fetching with TanStack Query. Don't break the auth
+  pattern though — `proxy.ts` + Server Component auth check stays.
+- TanStack Query setup: install `@tanstack/react-query` + `@tanstack/react-query-devtools`. Create a `QueryClientProvider` wrapper in the root layout (Client Component).
+- Server Components still wrap layouts/auth gating; data hooks (`useQuery`,
+  `useMutation`) live in Client Components inside those Server pages.
+- For mutations, use Supabase JS browser client directly + TanStack Query's
+  optimistic update API. The existing zod schemas can be reused on the
+  client (they're just functions).
+- Skip rebuilding the PDF/Sonner toast/etc. — those work fine in client
+  components already.
+- Service worker upgrade: switch `public/sw.js` from no-op to a real
+  stale-while-revalidate cache for the app shell. Use Workbox if it's
+  faster than writing by hand.
+- Don't migrate everything at once — start with `/customers` list as a
+  pilot, validate the pattern works, then propagate to products, quotes,
+  invoices.
