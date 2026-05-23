@@ -107,6 +107,11 @@ export const UNIT_LABELS: Record<Unit, string> = {
 
 export const ORG_ROLES = ['owner', 'admin', 'staff'] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
+export const ORG_ROLE_LABELS: Record<OrgRole, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  staff: 'Staff',
+};
 
 export const QUOTE_STATUSES = [
   'draft',
