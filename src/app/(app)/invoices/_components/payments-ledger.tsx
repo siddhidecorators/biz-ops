@@ -1,7 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trash2Icon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,28 +16,30 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PAYMENT_MODE_LABELS, type PaymentMode } from '@/lib/enums';
+import { PAYMENT_MODE_LABELS } from '@/lib/enums';
 import { formatINR, formatDateDMY } from '@/lib/format';
-import { deletePayment, type DeletePaymentState } from '../actions';
-
-const initialState: DeletePaymentState = { ok: false };
-
-export type PaymentRow = {
-  id: string;
-  amount: number | string;
-  payment_date: string;
-  mode: PaymentMode;
-  reference: string | null;
-  notes: string | null;
-};
+import { createClient } from '@/lib/supabase/browser';
+import {
+  paymentKeys,
+  fetchPayments,
+  type PaymentRow,
+} from '@/lib/queries/payments';
+import { invoiceKeys } from '@/lib/queries/invoices';
+import { dashboardKeys } from '@/lib/queries/dashboard';
 
 export function PaymentsLedger({
   invoiceId,
-  payments,
+  initialPayments,
 }: {
   invoiceId: string;
-  payments: PaymentRow[];
+  initialPayments: PaymentRow[];
 }) {
+  const { data: payments = initialPayments } = useQuery({
+    queryKey: paymentKeys.list(invoiceId),
+    queryFn: () => fetchPayments(invoiceId),
+    initialData: initialPayments,
+  });
+
   if (payments.length === 0) return null;
 
   return (
@@ -64,12 +68,20 @@ function PaymentRowItem({
   payment: PaymentRow;
   invoiceId: string;
 }) {
+  const isOptimistic = p.id.startsWith('optimistic-');
   return (
-    <li className="flex items-start gap-3 px-4 py-3 text-sm">
+    <li
+      className={
+        'flex items-start gap-3 px-4 py-3 text-sm ' +
+        (isOptimistic ? 'opacity-70' : '')
+      }
+    >
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-base font-medium">{formatINR(p.amount)}</span>
-          <span className="text-xs text-muted-foreground">{formatDateDMY(p.payment_date)}</span>
+          <span className="text-xs text-muted-foreground">
+            {formatDateDMY(p.payment_date)}
+          </span>
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {PAYMENT_MODE_LABELS[p.mode]}
@@ -77,7 +89,13 @@ function PaymentRowItem({
         </p>
         {p.notes && <p className="mt-1 text-xs">{p.notes}</p>}
       </div>
-      <DeletePaymentButton paymentId={p.id} invoiceId={invoiceId} amount={Number(p.amount)} />
+      {!isOptimistic && (
+        <DeletePaymentButton
+          paymentId={p.id}
+          invoiceId={invoiceId}
+          amount={Number(p.amount)}
+        />
+      )}
     </li>
   );
 }
@@ -91,11 +109,58 @@ function DeletePaymentButton({
   invoiceId: string;
   amount: number;
 }) {
-  const action = deletePayment.bind(null, paymentId, invoiceId);
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+
+  const { mutate, isPending } = useMutation<
+    void,
+    { code?: string; message?: string },
+    void,
+    { previous: PaymentRow[] | undefined }
+  >({
+    mutationFn: async () => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({
+        queryKey: paymentKeys.list(invoiceId),
+      });
+      const previous = queryClient.getQueryData<PaymentRow[]>(
+        paymentKeys.list(invoiceId),
+      );
+      queryClient.setQueryData<PaymentRow[]>(
+        paymentKeys.list(invoiceId),
+        (curr) => (curr ?? []).filter((r) => r.id !== paymentId),
+      );
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx) {
+        queryClient.setQueryData(paymentKeys.list(invoiceId), ctx.previous);
+      }
+      toast.error(err?.message ?? 'Could not delete payment.');
+    },
+    onSuccess: () => {
+      toast.success('Payment removed');
+      setOpen(false);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: paymentKeys.list(invoiceId),
+      });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(invoiceId) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.counts() });
+    },
+  });
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
           <Button
@@ -112,27 +177,24 @@ function DeletePaymentButton({
         <DialogHeader>
           <DialogTitle>Delete this payment?</DialogTitle>
           <DialogDescription>
-            Removes {formatINR(amount)} from the ledger. The invoice&apos;s paid amount and
-            balance will update automatically.
+            Removes {formatINR(amount)} from the ledger. The invoice&apos;s paid
+            amount and balance will update automatically.
           </DialogDescription>
         </DialogHeader>
 
-        {state.formError && (
-          <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-            {state.formError}
-          </p>
-        )}
-
-        <form action={formAction}>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" type="button" />}>
-              Cancel
-            </DialogClose>
-            <Button type="submit" variant="destructive" disabled={pending}>
-              {pending ? 'Removing…' : 'Delete payment'}
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" type="button" />}>
+            Cancel
+          </DialogClose>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isPending}
+            onClick={() => mutate()}
+          >
+            {isPending ? 'Removing…' : 'Delete payment'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

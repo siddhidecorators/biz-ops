@@ -2,7 +2,12 @@
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { customerKeys } from '@/lib/queries/customers';
+import { productKeys } from '@/lib/queries/products';
+import { quoteKeys } from '@/lib/queries/quotes';
+import { invoiceKeys } from '@/lib/queries/invoices';
 
 const MESSAGES: Record<string, string> = {
   customer_created: 'Customer added',
@@ -15,15 +20,30 @@ const MESSAGES: Record<string, string> = {
   quote_updated: 'Quote updated',
   quote_deleted: 'Quote deleted',
   invoice_created: 'Invoice created',
-  payment_recorded: 'Payment recorded',
-  payment_deleted: 'Payment removed',
   settings_saved: 'Settings saved',
+};
+
+// Keys to invalidate when a given ?saved=<value> redirect fires. The server
+// action's revalidatePath() is moot once data is client-cached — this is what
+// keeps the client cache in sync with the server write.
+const INVALIDATIONS: Record<string, readonly unknown[][]> = {
+  customer_created: [[...customerKeys.lists()]],
+  customer_updated: [[...customerKeys.lists()], [...customerKeys.details()]],
+  customer_deleted: [[...customerKeys.lists()]],
+  product_created: [[...productKeys.lists()]],
+  product_updated: [[...productKeys.lists()], [...productKeys.details()]],
+  product_deleted: [[...productKeys.lists()]],
+  quote_created: [[...quoteKeys.lists()]],
+  quote_updated: [[...quoteKeys.lists()], [...quoteKeys.details()]],
+  quote_deleted: [[...quoteKeys.lists()]],
+  invoice_created: [[...invoiceKeys.lists()]],
 };
 
 function ToastFromQueryInner({ paramKey = 'saved' }: { paramKey?: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const value = searchParams.get(paramKey);
 
   useEffect(() => {
@@ -31,12 +51,19 @@ function ToastFromQueryInner({ paramKey = 'saved' }: { paramKey?: string }) {
     const msg = MESSAGES[value];
     if (msg) toast.success(msg);
 
-    // Strip the param so a refresh doesn't re-fire the toast
+    const invalidations = INVALIDATIONS[value];
+    if (invalidations) {
+      for (const key of invalidations) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    }
+
+    // Strip the param so a refresh doesn't re-fire the toast.
     const next = new URLSearchParams(searchParams.toString());
     next.delete(paramKey);
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [value, paramKey, pathname, router, searchParams]);
+  }, [value, paramKey, pathname, router, searchParams, queryClient]);
 
   return null;
 }

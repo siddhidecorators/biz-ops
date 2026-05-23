@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  PAYMENT_STATUS_LABELS,
   UNIT_LABELS,
   type GstType,
   type InvoiceStatus,
@@ -17,10 +16,14 @@ import { PdfDownloadButtons } from '../../quotes/_components/pdf-download-button
 import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
 import { RecordPaymentDialog } from '../_components/record-payment-dialog';
+import { PaymentsLedger } from '../_components/payments-ledger';
 import {
-  PaymentsLedger,
-  type PaymentRow,
-} from '../_components/payments-ledger';
+  InvoiceStatusPill,
+  InvoicePaidDueRows,
+  InvoicePaidInFullBanner,
+} from '../_components/invoice-status-block';
+import type { PaymentRow } from '@/lib/queries/payments';
+import { deriveInvoicePaymentState } from '@/lib/queries/payments';
 
 export const metadata = { title: 'Invoice' };
 
@@ -103,12 +106,6 @@ type OrgForPdf = {
   terms_text: string | null;
 };
 
-const PAY_STYLE: Record<PaymentStatus, string> = {
-  unpaid: 'bg-rose-500/10 text-rose-700 ring-rose-500/30 dark:text-rose-300',
-  partial: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
-  paid: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
-};
-
 export default async function InvoiceDetailPage({
   params,
 }: {
@@ -173,6 +170,11 @@ export default async function InvoiceDetailPage({
   const org = orgRes.data ?? null;
   const isIntraState = invoice.gst_type === 'intra_state';
 
+  // Compute initial paid/due/status from the seeded payments. Client components
+  // hydrate the cache with these values, then keep them in sync via useQuery
+  // and optimistic mutations.
+  const initialDerived = deriveInvoicePaymentState(payments, Number(invoice.total));
+
   const billingAddress = invoice.customers
     ? [
         invoice.customers.billing_address_line1,
@@ -207,20 +209,14 @@ export default async function InvoiceDetailPage({
         back={{ href: '/invoices' }}
       />
       <main className="mx-auto max-w-md space-y-4 px-6 py-5">
-        <div className="flex items-center gap-2 text-xs">
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 font-medium uppercase tracking-wide ring-1',
-              PAY_STYLE[invoice.payment_status],
-            )}
-          >
-            {PAYMENT_STATUS_LABELS[invoice.payment_status]}
-          </span>
-          <span className="text-muted-foreground">
-            Issued {formatDateDMY(invoice.issue_date)}
-            {invoice.gst_type === 'inter_state' ? ' · IGST' : ' · CGST + SGST'}
-          </span>
-        </div>
+        <InvoiceStatusPill
+          invoiceId={invoice.id}
+          invoiceTotal={Number(invoice.total)}
+          issueDate={invoice.issue_date}
+          gstType={invoice.gst_type}
+          initial={initialDerived}
+          initialPayments={payments}
+        />
 
         {invoice.customers && (
           <Card>
@@ -305,12 +301,12 @@ export default async function InvoiceDetailPage({
             <div className="mt-2 border-t border-border pt-2">
               <Row label="Total" value={Number(invoice.total)} emphasize />
             </div>
-            {Number(invoice.amount_paid) > 0 && (
-              <>
-                <Row label="Paid" value={Number(invoice.amount_paid)} muted />
-                <Row label="Balance due" value={Number(invoice.amount_due)} emphasize />
-              </>
-            )}
+            <InvoicePaidDueRows
+              invoiceId={invoice.id}
+              invoiceTotal={Number(invoice.total)}
+              initial={initialDerived}
+              initialPayments={payments}
+            />
           </CardContent>
         </Card>
 
@@ -325,21 +321,19 @@ export default async function InvoiceDetailPage({
           </Card>
         )}
 
-        <PaymentsLedger invoiceId={invoice.id} payments={payments} />
+        <PaymentsLedger invoiceId={invoice.id} initialPayments={payments} />
 
         <div className="space-y-3 pt-2">
-          {Number(invoice.amount_due) > 0 && (
-            <RecordPaymentDialog
-              invoiceId={invoice.id}
-              amountDue={Number(invoice.amount_due)}
-              invoiceNumber={invoice.invoice_number}
-            />
-          )}
-          {Number(invoice.amount_due) <= 0 && payments.length > 0 && (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-sm font-medium text-emerald-700 dark:text-emerald-300">
-              ✓ Paid in full
-            </div>
-          )}
+          <RecordPaymentDialog
+            invoiceId={invoice.id}
+            invoiceTotal={Number(invoice.total)}
+            invoiceNumber={invoice.invoice_number}
+          />
+          <InvoicePaidInFullBanner
+            invoiceId={invoice.id}
+            invoiceTotal={Number(invoice.total)}
+            initialPayments={payments}
+          />
           {org && invoice.customers && (
             <PdfDownloadButtons
               data={buildInvoicePdfData({ invoice, lines, org, isIntraState })}
