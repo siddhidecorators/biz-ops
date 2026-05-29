@@ -13,6 +13,7 @@ import { AppBar } from '../../_components/app-bar';
 import { DeleteQuoteButton } from '../_components/delete-button';
 import { QuoteActions } from '../_components/quote-actions';
 import { PdfDownloadButtons } from '../_components/pdf-download-button';
+import { ShareQuoteButton } from '../_components/share-quote-button';
 import type { QuotePdfData } from '../_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
 
@@ -20,6 +21,7 @@ export const metadata = { title: 'Quote' };
 
 type QuoteRow = {
   id: string;
+  share_token: string;
   quote_number: string;
   status: QuoteStatus;
   invoice_id: string | null;
@@ -112,7 +114,7 @@ export default async function QuoteDetailPage({
     supabase
       .from('quotes')
       .select(
-        `id, quote_number, status, invoice_id, issue_date, valid_until, project_label, notes,
+        `id, share_token, quote_number, status, invoice_id, issue_date, valid_until, project_label, notes,
          subtotal, tax_total, round_off, total, place_of_supply_state,
          install_address_line1, install_address_line2, install_city, install_state, install_pincode,
          customers(id, name, phone, email, gstin, customer_type,
@@ -305,6 +307,15 @@ export default async function QuoteDetailPage({
         )}
 
         <div className="space-y-3 pt-4">
+          {org && quote.status !== 'converted_to_invoice' && (
+            <ShareQuoteButton
+              shareToken={quote.share_token}
+              customerPhone={quote.customers?.phone ?? null}
+              customerName={quote.customers?.name ?? null}
+              quoteNumber={quote.quote_number}
+              orgName={org.name}
+            />
+          )}
           {org && quote.customers && (
             <PdfDownloadButtons
               data={buildPdfData({
