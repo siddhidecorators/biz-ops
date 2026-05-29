@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent } from '@/components/ui/card';
+import { isoDate, addDays } from '@/lib/format';
 import { AppBar } from '../../_components/app-bar';
 import {
   QuoteForm,
@@ -59,6 +60,11 @@ export default async function NewQuotePage({
     .maybeSingle<OrgSettings>();
 
   const customers = customersRes.data ?? [];
+  const validityDays = org?.quote_validity_days ?? 30;
+  // Compute default dates here (server) so the client form renders identical
+  // values on hydration — avoids a timezone-dependent hydration mismatch.
+  const today = isoDate();
+  const defaultValidUntil = isoDate(addDays(new Date(), validityDays));
 
   if (customers.length === 0) {
     return (
@@ -92,7 +98,9 @@ export default async function NewQuotePage({
           customers={customers}
           templates={templatesRes.data ?? []}
           orgState={org?.state ?? null}
-          defaultValidityDays={org?.quote_validity_days ?? 30}
+          defaultValidityDays={validityDays}
+          today={today}
+          defaultValidUntil={defaultValidUntil}
           defaultCustomerId={defaultCustomerId ?? null}
         />
       </main>

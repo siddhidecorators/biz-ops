@@ -75,8 +75,14 @@ type LineDraft = {
   tax_rate_percent: string;
 };
 
-const blankLine = (): LineDraft => ({
-  uid: Math.random().toString(36).slice(2, 10),
+// Unique id for lines the user adds AFTER mount (client-only, so randomness is
+// safe). The INITIAL lines use deterministic index-based ids (see useState
+// below) — a random id during the first render would differ between server and
+// client and cause a hydration mismatch.
+const randomUid = () => Math.random().toString(36).slice(2, 10);
+
+const blankLine = (uid: string): LineDraft => ({
+  uid,
   template_id: null,
   description: '',
   hsn_sac_code: '',
@@ -94,6 +100,8 @@ export function QuoteForm({
   orgState,
   defaultValidityDays,
   defaultCustomerId,
+  today: todayProp,
+  defaultValidUntil: defaultValidUntilProp,
   action,
   initial,
   submitLabel = 'Save quote',
@@ -103,6 +111,8 @@ export function QuoteForm({
   orgState: string | null;
   defaultValidityDays: number;
   defaultCustomerId?: string | null;
+  today?: string;
+  defaultValidUntil?: string;
   action?: (
     prev: QuoteFormState | null,
     formData: FormData,
@@ -112,8 +122,13 @@ export function QuoteForm({
 }) {
   const [state, formAction, pending] = useActionState(action ?? createQuote, initialState);
 
-  const today = isoDate();
-  const defaultValidUntil = isoDate(addDays(today, defaultValidityDays));
+  // Computed on the server and passed in, so SSR and client hydration render
+  // the same strings (computing dates here would mismatch across timezones —
+  // a real hydration bug). The fallback only runs on the edit page, where the
+  // quote's own dates (initial) are used instead.
+  const today = todayProp ?? isoDate();
+  const defaultValidUntil =
+    defaultValidUntilProp ?? isoDate(addDays(new Date(), defaultValidityDays));
 
   const [customerId, setCustomerId] = useState<string>(
     initial?.customer_id ?? defaultCustomerId ?? '',
@@ -122,8 +137,8 @@ export function QuoteForm({
   const [validUntil, setValidUntil] = useState(initial?.valid_until ?? defaultValidUntil);
   const [lines, setLines] = useState<LineDraft[]>(
     initial?.lines
-      ? initial.lines.map((l) => ({
-          uid: Math.random().toString(36).slice(2, 10),
+      ? initial.lines.map((l, i) => ({
+          uid: `L${i}`,
           template_id: l.template_id,
           description: l.description,
           hsn_sac_code: l.hsn_sac_code,
@@ -132,7 +147,7 @@ export function QuoteForm({
           rate: l.rate,
           tax_rate_percent: l.tax_rate_percent,
         }))
-      : [blankLine()],
+      : [blankLine('L0')],
   );
 
   const selectedCustomer = useMemo(
@@ -325,7 +340,7 @@ export function QuoteForm({
             variant="outline"
             size="lg"
             className="h-11 w-full"
-            onClick={() => setLines((prev) => [...prev, blankLine()])}
+            onClick={() => setLines((prev) => [...prev, blankLine(randomUid())])}
           >
             <PlusIcon className="size-4" />
             Add another line
