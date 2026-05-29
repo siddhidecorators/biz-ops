@@ -6,7 +6,6 @@ import {
   SendIcon,
   CheckIcon,
   XIcon,
-  PencilIcon,
   RotateCcwIcon,
   ArrowRightIcon,
   ReceiptIcon,
@@ -54,39 +53,26 @@ export function QuoteActions({
   }
 
   return (
-    <div className="space-y-3">
-      {/* Status transitions */}
-      <div className="grid grid-cols-2 gap-2">
-        {status === 'draft' && (
-          <StatusButton quoteId={quoteId} to="sent" label="Mark sent" Icon={SendIcon} primary />
-        )}
-        {status === 'sent' && (
-          <>
-            <StatusButton quoteId={quoteId} to="accepted" label="Mark accepted" Icon={CheckIcon} primary />
-            <StatusButton quoteId={quoteId} to="declined" label="Mark declined" Icon={XIcon} variant="outline" />
-          </>
-        )}
-        {status === 'accepted' && (
-          <ConvertButton quoteId={quoteId} />
-        )}
-        {(status === 'declined' || status === 'expired') && (
-          <StatusButton
-            quoteId={quoteId}
-            to={status === 'expired' ? 'sent' : 'draft'}
-            label={status === 'expired' ? 'Re-send' : 'Reopen as draft'}
-            Icon={RotateCcwIcon}
-            variant="outline"
-          />
-        )}
-      </div>
-
-      <Link
-        href={`/quotes/${quoteId}/edit`}
-        className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'h-11 w-full')}
-      >
-        <PencilIcon className="size-4" />
-        Edit quote
-      </Link>
+    <div className="grid grid-cols-2 gap-2">
+      {status === 'draft' && (
+        <StatusButton quoteId={quoteId} to="sent" label="Mark sent" Icon={SendIcon} primary />
+      )}
+      {status === 'sent' && (
+        <>
+          <StatusButton quoteId={quoteId} to="accepted" label="Mark accepted" Icon={CheckIcon} primary />
+          <StatusButton quoteId={quoteId} to="declined" label="Mark declined" Icon={XIcon} variant="outline" />
+        </>
+      )}
+      {status === 'accepted' && <ConvertButton quoteId={quoteId} />}
+      {(status === 'declined' || status === 'expired') && (
+        <StatusButton
+          quoteId={quoteId}
+          to={status === 'expired' ? 'sent' : 'draft'}
+          label={status === 'expired' ? 'Re-send' : 'Reopen as draft'}
+          Icon={RotateCcwIcon}
+          variant="outline"
+        />
+      )}
     </div>
   );
 }

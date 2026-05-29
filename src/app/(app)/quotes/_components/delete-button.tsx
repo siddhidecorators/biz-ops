@@ -87,8 +87,15 @@ export function DeleteQuoteButton({
         if (!o) reset();
       }}
     >
-      <DialogTrigger render={<Button variant="destructive" size="lg" className="h-12 w-full" />}>
-        Delete quote
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            className="h-auto p-0 text-sm font-normal text-muted-foreground underline underline-offset-4 hover:bg-transparent hover:text-destructive"
+          />
+        }
+      >
+        Delete
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -306,7 +307,8 @@ export default async function QuoteDetailPage({
           </Card>
         )}
 
-        <div className="space-y-3 pt-4">
+        <div className="space-y-2.5 pt-4">
+          {/* Primary — send the quote to the customer */}
           {org && quote.status !== 'converted_to_invoice' && (
             <ShareQuoteButton
               shareToken={quote.share_token}
@@ -316,6 +318,15 @@ export default async function QuoteDetailPage({
               orgName={org.name}
             />
           )}
+
+          {/* Workflow — advance status / convert */}
+          <QuoteActions
+            quoteId={quote.id}
+            status={quote.status}
+            invoiceId={quote.invoice_id}
+          />
+
+          {/* Quiet — for the owner's own records */}
           {org && quote.customers && (
             <PdfDownloadButtons
               data={buildPdfData({
@@ -327,13 +338,18 @@ export default async function QuoteDetailPage({
               })}
             />
           )}
-          <QuoteActions
-            quoteId={quote.id}
-            status={quote.status}
-            invoiceId={quote.invoice_id}
-          />
+
+          {/* Subtle — edit / delete */}
           {quote.status !== 'converted_to_invoice' && (
-            <DeleteQuoteButton quoteId={quote.id} quoteNumber={quote.quote_number} />
+            <div className="flex items-center justify-center gap-5 pt-2">
+              <Link
+                href={`/quotes/${quote.id}/edit`}
+                className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                Edit
+              </Link>
+              <DeleteQuoteButton quoteId={quote.id} quoteNumber={quote.quote_number} />
+            </div>
           )}
         </div>
       </main>

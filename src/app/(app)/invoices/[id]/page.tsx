@@ -352,12 +352,14 @@ export default async function InvoiceDetailPage({
             />
           )}
           {invoice.quote_id && (
-            <Link
-              href={`/quotes/${invoice.quote_id}`}
-              className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-border bg-card text-sm font-medium hover:bg-muted"
-            >
-              View source quote
-            </Link>
+            <div className="pt-1 text-center">
+              <Link
+                href={`/quotes/${invoice.quote_id}`}
+                className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                View source quote
+              </Link>
+            </div>
           )}
         </div>
       </main>
