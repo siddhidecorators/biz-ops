@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatINR, formatDateDMY } from '@/lib/format';
 import { QUOTE_STATUS_LABELS, type QuoteStatus } from '@/lib/enums';
@@ -34,6 +36,18 @@ export function QuotesList() {
     queryFn: fetchQuotesList,
   });
 
+  const [term, setTerm] = useState('');
+  const q = term.trim().toLowerCase();
+  const filtered =
+    q && quotes
+      ? quotes.filter(
+          (x) =>
+            x.quote_number.toLowerCase().includes(q) ||
+            (x.customers?.name ?? '').toLowerCase().includes(q) ||
+            (x.project_label ?? '').toLowerCase().includes(q),
+        )
+      : quotes;
+
   const total = quotes?.length ?? 0;
 
   return (
@@ -62,11 +76,30 @@ export function QuotesList() {
         ) : total === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="space-y-2.5">
-            {quotes.map((q) => (
-              <QuoteRow key={q.id} quote={q} />
-            ))}
-          </ul>
+          <>
+            <div className="mb-4">
+              <Input
+                type="search"
+                inputMode="search"
+                aria-label="Search quotes"
+                placeholder="Search by number, customer, or project"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                className="h-11"
+              />
+            </div>
+            {filtered!.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">No quotes match your search.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2.5">
+                {filtered!.map((qt) => (
+                  <QuoteRow key={qt.id} quote={qt} />
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </main>
     </>

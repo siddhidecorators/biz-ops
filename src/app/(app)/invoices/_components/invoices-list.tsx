@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatINR, formatDateDMY } from '@/lib/format';
 import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/lib/enums';
@@ -30,6 +32,18 @@ export function InvoicesList() {
     queryFn: fetchInvoicesList,
   });
 
+  const [term, setTerm] = useState('');
+  const q = term.trim().toLowerCase();
+  const filtered =
+    q && invoices
+      ? invoices.filter(
+          (x) =>
+            x.invoice_number.toLowerCase().includes(q) ||
+            (x.customers?.name ?? '').toLowerCase().includes(q) ||
+            (x.project_label ?? '').toLowerCase().includes(q),
+        )
+      : invoices;
+
   const total = invoices?.length ?? 0;
 
   return (
@@ -49,11 +63,30 @@ export function InvoicesList() {
         ) : total === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="space-y-2.5">
-            {invoices.map((inv) => (
-              <InvoiceRow key={inv.id} invoice={inv} />
-            ))}
-          </ul>
+          <>
+            <div className="mb-4">
+              <Input
+                type="search"
+                inputMode="search"
+                aria-label="Search invoices"
+                placeholder="Search by number, customer, or project"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                className="h-11"
+              />
+            </div>
+            {filtered!.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">No invoices match your search.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2.5">
+                {filtered!.map((inv) => (
+                  <InvoiceRow key={inv.id} invoice={inv} />
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </main>
     </>
