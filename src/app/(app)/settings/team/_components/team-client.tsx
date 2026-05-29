@@ -123,23 +123,27 @@ function InviteForm() {
   >({
     mutationFn: async (input) => {
       const supabase = createClient();
-      // Look up our org_id so we can fill the row. RLS will then enforce
-      // that org_id matches current_org_id() AND we're an owner.
-      const { data: profile, error: profileErr } = await supabase
-        .from('profiles')
-        .select('org_id')
-        .single<{ org_id: string }>();
-      if (profileErr) throw profileErr;
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (!user) throw new Error('Your session expired. Reload and sign in again.');
+      // Look up our own org_id so we can fill the row. MUST filter by our own
+      // id: the org-wide profiles SELECT policy means an unfiltered query
+      // returns every teammate's row, which would make .single() throw the
+      // moment the org has more than one member.
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('org_id')
+        .eq('id', user.id)
+        .single<{ org_id: string }>();
+      if (profileErr) throw profileErr;
       const { data, error } = await supabase
         .from('org_invites')
         .insert({
           org_id: profile.org_id,
           email: input.email.trim().toLowerCase(),
           role: input.role,
-          invited_by: user?.id ?? null,
+          invited_by: user.id,
         })
         .select('id, email, role, created_at')
         .single<InviteRow>();
