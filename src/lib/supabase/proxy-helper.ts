@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // '/q' is the public, token-gated quote view customers open from a WhatsApp
 // link — it must be reachable without a session.
-const PUBLIC_PATHS = ['/sign-in', '/auth', '/q'];
+const PUBLIC_PATHS = ['/sign-in', '/auth', '/q', '/i'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

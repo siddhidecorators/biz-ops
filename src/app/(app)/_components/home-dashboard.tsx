@@ -10,6 +10,7 @@ import {
   SettingsIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatINR } from '@/lib/format';
 import {
   dashboardKeys,
   fetchDashboardCounts,
@@ -97,7 +98,9 @@ export function HomeDashboard({
             label="Invoices"
             counts={data}
             countKey="unpaid_invoices"
-            hintFor={(n) => (n === 0 ? 'All clear' : 'Pending payment')}
+            hintFor={(n) =>
+              n === 0 ? 'All clear' : `${formatINR(data?.outstanding ?? 0)} due`
+            }
             highlight={(data?.unpaid_invoices ?? 0) > 0}
             loading={isPending}
             errored={isError}

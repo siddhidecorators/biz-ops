@@ -16,6 +16,7 @@ import { PdfDownloadButtons } from '../../quotes/_components/pdf-download-button
 import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
 import { RecordPaymentDialog } from '../_components/record-payment-dialog';
+import { RemindPaymentButton } from '../_components/remind-payment-button';
 import { PaymentsLedger } from '../_components/payments-ledger';
 import {
   InvoiceStatusPill,
@@ -29,6 +30,7 @@ export const metadata = { title: 'Invoice' };
 
 type InvoiceRow = {
   id: string;
+  share_token: string;
   invoice_number: string;
   status: InvoiceStatus;
   payment_status: PaymentStatus;
@@ -122,7 +124,7 @@ export default async function InvoiceDetailPage({
     supabase
       .from('invoices')
       .select(
-        `id, invoice_number, status, payment_status, issue_date, project_label, notes, terms_text,
+        `id, share_token, invoice_number, status, payment_status, issue_date, project_label, notes, terms_text,
          subtotal, tax_total, round_off, total, amount_paid, amount_due,
          place_of_supply_state, gst_type, cgst_total, sgst_total, igst_total,
          install_address_line1, install_address_line2, install_city, install_state, install_pincode, quote_id,
@@ -329,6 +331,16 @@ export default async function InvoiceDetailPage({
             invoiceTotal={Number(invoice.total)}
             invoiceNumber={invoice.invoice_number}
           />
+          {org && Number(invoice.amount_due) > 0 && (
+            <RemindPaymentButton
+              shareToken={invoice.share_token}
+              customerPhone={invoice.customers?.phone ?? null}
+              customerName={invoice.customers?.name ?? null}
+              invoiceNumber={invoice.invoice_number}
+              amountDue={Number(invoice.amount_due)}
+              orgName={org.name}
+            />
+          )}
           <InvoicePaidInFullBanner
             invoiceId={invoice.id}
             invoiceTotal={Number(invoice.total)}

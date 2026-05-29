@@ -6,6 +6,7 @@ export type DashboardCounts = {
   unverified: number;
   open_quotes: number;
   unpaid_invoices: number;
+  outstanding: number;
 };
 
 export const dashboardKeys = {
@@ -19,6 +20,7 @@ type RpcRow = {
   unverified: number | string;
   open_quotes: number | string;
   unpaid_invoices: number | string;
+  outstanding: number | string;
 };
 
 export async function fetchDashboardCounts(): Promise<DashboardCounts> {
@@ -35,5 +37,6 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
     unverified: Number(row?.unverified ?? 0),
     open_quotes: Number(row?.open_quotes ?? 0),
     unpaid_invoices: Number(row?.unpaid_invoices ?? 0),
+    outstanding: Number(row?.outstanding ?? 0),
   };
 }
