@@ -24,17 +24,16 @@ export function formatINRPlain(amount: number | string | null | undefined): stri
 }
 
 /**
- * Format an amount with the literal "Rs " prefix — for PDF output where the
- * Unicode ₹ glyph isn't available in the embedded Helvetica font and falls back
- * to a superscript-1. "Rs" is the standard fallback notation on Indian
- * invoices and is universally understood.
+ * Format an amount with the ₹ symbol for PDF output. The PDF now embeds Roboto
+ * (see quote-pdf.tsx), which includes the U+20B9 ₹ glyph, so we can use the real
+ * symbol instead of the old "Rs" fallback.
  */
 export function formatINRForPdf(amount: number | string | null | undefined): string {
   if (amount == null || amount === '') return '—';
   const n = typeof amount === 'string' ? Number(amount) : amount;
   if (!Number.isFinite(n)) return '—';
   const sign = n < 0 ? '-' : '';
-  return `${sign}Rs ${INR_PLAIN.format(Math.abs(n))}`;
+  return `${sign}₹${INR_PLAIN.format(Math.abs(n))}`;
 }
 
 export function formatDateDMY(date: Date | string | null | undefined): string {

@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
   Image,
+  Font,
 } from '@react-pdf/renderer';
 import { UNIT_LABELS, type Unit } from '@/lib/enums';
 import {
@@ -15,16 +16,14 @@ import {
 } from '@/lib/format';
 import { STATE_BY_CODE } from '@/lib/india';
 
-// react-pdf ships these fonts for free: Helvetica/Helvetica-Bold/Helvetica-Oblique,
-// Times-Roman/Times-Bold/Times-Italic/Times-BoldItalic, Courier, Symbol,
-// ZapfDingbats. None include the U+20B9 ₹ glyph (PDF Standard-14 predates it),
-// so currency renders as "Rs 1,250.00".
-//
-// Typographic strategy:
-//   • Times-Bold for display (company name, doc type, totals) — adds warmth
-//   • Times-Italic for taglines and disclaimers
-//   • Helvetica for body and tables — clean and legible
-// This avoids any external font dependency and works offline.
+// react-pdf's built-in fonts (Helvetica, Times) predate the U+20B9 ₹ glyph, so
+// currency used to render as "Rs 1,250.00". We bundle Roboto (regular + bold),
+// which includes ₹, served from /public/fonts so there's no CDN dependency at
+// render time. Roboto-Bold covers what used to be the serif display + bold body.
+Font.register({ family: 'Roboto', src: '/fonts/Roboto-Regular.ttf' });
+Font.register({ family: 'Roboto-Bold', src: '/fonts/Roboto-Bold.ttf' });
+// react-pdf hyphenates by default; disable it so words/amounts don't get split.
+Font.registerHyphenationCallback((word) => [word]);
 
 const TERRACOTTA = '#B8552A';
 const TERRACOTTA_DARK = '#7E3812';
@@ -63,7 +62,7 @@ const DEFAULT_INVOICE_TERMS: string[] = [
 const styles = StyleSheet.create({
   // ─── Page shell ────────────────────────────────────────────────
   page: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Roboto',
     fontSize: 9,
     color: INK,
     padding: 32,
@@ -91,14 +90,14 @@ const styles = StyleSheet.create({
   brandLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, maxWidth: 340 },
   logo: { width: 50, height: 50, objectFit: 'contain' },
   orgName: {
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     fontSize: 17,
     color: INK,
     letterSpacing: 0.8,
     lineHeight: 1.1,
   },
   tagline: {
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
     fontSize: 9,
     color: TERRACOTTA,
     marginTop: 1,
@@ -119,14 +118,14 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: INK_SOFT,
     marginTop: 4,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     letterSpacing: 0.2,
   },
 
   // Doc type pill (right side of header)
   docTypeWrap: { alignItems: 'flex-end', minWidth: 200 },
   docType: {
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     fontSize: 22,
     color: TERRACOTTA,
     letterSpacing: 3.2,
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
   docNumber: {
     marginTop: 4,
     fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: INK,
     letterSpacing: 0.5,
   },
@@ -168,10 +167,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.8,
     marginBottom: 4,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
   },
   partyName: {
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     fontSize: 13,
     color: INK,
     marginBottom: 3,
@@ -180,7 +179,7 @@ const styles = StyleSheet.create({
   partyLine: { fontSize: 9, color: INK_SOFT, lineHeight: 1.5 },
   partyMuted: { fontSize: 8.5, color: MUTED, marginTop: 4, lineHeight: 1.5 },
   partyEmpty: {
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
     fontSize: 9,
     color: MUTED,
     marginTop: 2,
@@ -200,12 +199,12 @@ const styles = StyleSheet.create({
     color: MUTED,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
   },
   projectValue: {
     fontSize: 10,
     color: INK,
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
   },
 
   // ─── Lines table ───────────────────────────────────────────────
@@ -221,7 +220,7 @@ const styles = StyleSheet.create({
   },
   th: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: INK,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
   cTaxable: { width: 70, textAlign: 'right' },
   cTaxSplit: { width: 60, textAlign: 'right' },
   cTotal: { width: 78, textAlign: 'right' },
-  cTotalBold: { fontFamily: 'Helvetica-Bold' },
+  cTotalBold: { fontFamily: 'Roboto-Bold' },
 
   // ─── Totals ────────────────────────────────────────────────────
   totalsWrap: {
@@ -278,14 +277,14 @@ const styles = StyleSheet.create({
   },
   grandLabel: {
     fontSize: 11,
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     color: INK,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
   grandValue: {
     fontSize: 17,
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     color: TERRACOTTA_DARK,
     letterSpacing: 0.4,
   },
@@ -312,14 +311,14 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: INK,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   balanceValue: {
     fontSize: 13,
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     color: TERRACOTTA_DARK,
     letterSpacing: 0.3,
   },
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
   },
   paidStampText: {
     fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: '#0F7A4C',
     letterSpacing: 2.4,
     textTransform: 'uppercase',
@@ -355,12 +354,12 @@ const styles = StyleSheet.create({
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
   },
   wordsValue: {
     fontSize: 10,
     color: INK,
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
     marginTop: 2,
     lineHeight: 1.4,
   },
@@ -377,7 +376,7 @@ const styles = StyleSheet.create({
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.8,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     marginBottom: 5,
   },
   termsList: { flexDirection: 'column' },
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
   },
   noteLabel: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: MUTED,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -422,7 +421,7 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: INK_SOFT,
     lineHeight: 1.5,
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
   },
 
   // ─── Footer (payment + signature) ──────────────────────────────
@@ -440,7 +439,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.8,
     marginBottom: 5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
   },
   footerLine: { fontSize: 9, color: INK_SOFT, lineHeight: 1.5 },
   footerSubLabel: { color: MUTED, marginRight: 3 },
@@ -448,7 +447,7 @@ const styles = StyleSheet.create({
 
   signFor: { fontSize: 8.5, color: MUTED, marginBottom: 2 },
   signOrgName: {
-    fontFamily: 'Times-Bold',
+    fontFamily: 'Roboto-Bold',
     fontSize: 12,
     color: INK,
     letterSpacing: 0.4,
@@ -457,7 +456,7 @@ const styles = StyleSheet.create({
   signLineRule: { height: 0.75, backgroundColor: INK, marginBottom: 3 },
   signName: {
     fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Roboto-Bold',
     color: INK,
   },
   signTitle: {
@@ -478,14 +477,14 @@ const styles = StyleSheet.create({
     borderTopColor: TERRACOTTA_SOFT,
   },
   thanks: {
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
     fontSize: 10,
     color: TERRACOTTA_DARK,
     textAlign: 'center',
     letterSpacing: 0.4,
   },
   disclaimer: {
-    fontFamily: 'Times-Italic',
+    fontFamily: 'Roboto',
     fontSize: 7.5,
     color: MUTED,
     textAlign: 'center',
