@@ -3,8 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { SignInButton } from './sign-in-button';
 import { DevSignInButton } from './dev-sign-in-button';
 
+// Just 'Sign in' — the root layout's title template appends ' · SmallBiz Ops',
+// so setting the full string here produced "Sign in · SmallBiz Ops · SmallBiz Ops".
 export const metadata = {
-  title: 'Sign in · SmallBiz Ops',
+  title: 'Sign in',
 };
 
 export default async function SignInPage({

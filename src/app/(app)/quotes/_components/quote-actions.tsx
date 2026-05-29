@@ -78,7 +78,6 @@ export function QuoteActions({
             variant="outline"
           />
         )}
-        {(status === 'sent' || status === 'expired') && status !== 'sent' && null}
       </div>
 
       <Link
