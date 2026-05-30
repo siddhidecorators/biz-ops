@@ -12,9 +12,9 @@ export const metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; deleted?: string }>;
 }) {
-  const { error, next } = await searchParams;
+  const { error, next, deleted } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -44,6 +44,12 @@ export default async function SignInPage({
             Customers, products, invoices — on your phone.
           </p>
         </div>
+
+        {deleted && (
+          <p className="rounded-lg border border-success/30 bg-success-tint px-3 py-2 text-center text-sm text-success-strong">
+            Your business has been deleted. Sign in to start fresh.
+          </p>
+        )}
 
         <SignInButton next={next} />
 

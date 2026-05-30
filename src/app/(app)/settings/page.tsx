@@ -4,6 +4,7 @@ import { UsersIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { OnboardingForm, type OrgRow } from '@/app/onboarding/onboarding-form';
 import { Card, CardContent } from '@/components/ui/card';
+import { DeleteBusiness } from './_components/delete-business';
 import { AppBar } from '../_components/app-bar';
 
 export const metadata = { title: 'Settings' };
@@ -88,6 +89,8 @@ export default async function SettingsPage() {
           defaultEmail={user.email ?? ''}
           submitLabel="Save changes"
         />
+
+        {profile.role === 'owner' && <DeleteBusiness orgName={org.name} />}
       </main>
     </>
   );
