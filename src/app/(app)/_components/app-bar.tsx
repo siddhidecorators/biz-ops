@@ -14,7 +14,7 @@ export function AppBar({
   right?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+    <header className="sticky top-0 z-30 border-b border-border bg-background">
       <div className="mx-auto flex h-14 max-w-md items-center gap-2 px-3">
         {back ? (
           <Link

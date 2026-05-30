@@ -73,7 +73,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background"
     >
       <ul className="mx-auto flex max-w-md items-stretch px-1">
         {LEFT_TABS.map((t) => (

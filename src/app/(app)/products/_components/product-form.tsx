@@ -7,15 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   CRAFT_GROUPS,
@@ -87,41 +79,32 @@ export function ProductForm({
           />
           <div className="space-y-1">
             <Label htmlFor="craft">Craft</Label>
-            <Select name="craft" defaultValue={d.craft ?? ''}>
-              <SelectTrigger id="craft" className="h-11">
-                <SelectValue placeholder="Pick a craft" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CRAFT_GROUPS).map(([chapter, crafts]) => (
-                  <SelectGroup key={chapter}>
-                    <SelectLabel>{chapter}</SelectLabel>
-                    {crafts.map((c: Craft) => (
-                      <SelectItem key={c} value={c}>
-                        {CRAFT_LABELS[c]}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
+            <PickerField
+              id="craft"
+              name="craft"
+              label="Craft"
+              placeholder="Pick a craft"
+              searchable
+              defaultValue={d.craft ?? ''}
+              groups={Object.entries(CRAFT_GROUPS).map(([chapter, crafts]) => ({
+                label: chapter,
+                options: crafts.map((c: Craft) => ({ value: c, label: CRAFT_LABELS[c] })),
+              }))}
+            />
             {state.fieldErrors?.craft && (
               <p className="text-xs text-destructive">{state.fieldErrors.craft}</p>
             )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="unit">Unit of measure</Label>
-            <Select name="unit" defaultValue={d.unit ?? ''}>
-              <SelectTrigger id="unit" className="h-11">
-                <SelectValue placeholder="Pick a unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u: Unit) => (
-                  <SelectItem key={u} value={u}>
-                    {UNIT_LABELS[u]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PickerField
+              id="unit"
+              name="unit"
+              label="Unit of measure"
+              placeholder="Pick a unit"
+              defaultValue={d.unit ?? ''}
+              options={UNITS.map((u: Unit) => ({ value: u, label: UNIT_LABELS[u] }))}
+            />
             {state.fieldErrors?.unit && (
               <p className="text-xs text-destructive">{state.fieldErrors.unit}</p>
             )}

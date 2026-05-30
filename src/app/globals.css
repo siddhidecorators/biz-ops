@@ -313,7 +313,7 @@ h1, h2 {
 
 /* Entrance: content settles upward. Stagger with an inline animation-delay. */
 .animate-rise {
-  animation: rise 0.55s var(--ease-out-expo) both;
+  animation: rise 0.4s var(--ease-out-expo) both;
 }
 .animate-pop {
   animation: pop 0.45s var(--ease-out-back) both;

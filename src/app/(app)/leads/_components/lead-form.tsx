@@ -6,13 +6,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { LEAD_STATUSES, LEAD_STATUS_LABELS } from '@/lib/enums';
@@ -85,18 +79,16 @@ export function LeadForm({
             </div>
             <div className="space-y-1">
               <Label htmlFor="status">Status</Label>
-              <Select name="status" defaultValue={d.status ?? 'new'}>
-                <SelectTrigger id="status" className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAD_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {LEAD_STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PickerField
+                id="status"
+                name="status"
+                label="Status"
+                defaultValue={d.status ?? 'new'}
+                options={LEAD_STATUSES.map((s) => ({
+                  value: s,
+                  label: LEAD_STATUS_LABELS[s],
+                }))}
+              />
             </div>
           </div>
 

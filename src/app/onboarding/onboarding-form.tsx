@@ -4,13 +4,7 @@ import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { INDIAN_STATES } from '@/lib/india';
 import { saveOnboarding, type OnboardingFormState } from './actions';
@@ -82,18 +76,15 @@ export function OnboardingForm({
             <Field name="city" label="City" defaultValue={org.city ?? ''} />
             <div className="space-y-1">
               <Label htmlFor="state">State / UT</Label>
-              <Select name="state" defaultValue={org.state ?? ''}>
-                <SelectTrigger id="state" className="h-11">
-                  <SelectValue placeholder="Pick a state" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDIAN_STATES.map((s) => (
-                    <SelectItem key={s.code} value={s.code}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PickerField
+                id="state"
+                name="state"
+                label="State / UT"
+                placeholder="Pick a state"
+                searchable
+                defaultValue={org.state ?? ''}
+                options={INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))}
+              />
               {state.fieldErrors?.state && <p className="text-xs text-destructive">{state.fieldErrors.state}</p>}
             </div>
             <Field name="pincode" label="Pincode" inputMode="numeric" defaultValue={org.pincode ?? ''} error={state.fieldErrors?.pincode} />

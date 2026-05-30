@@ -8,15 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import { cn } from '@/lib/utils';
 import { formatINR, isoDate, addDays, round2, roundOffToRupee } from '@/lib/format';
 import { UNITS, UNIT_LABELS, type Unit } from '@/lib/enums';
@@ -232,29 +224,20 @@ export function QuoteForm({
         <CardContent className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="customer_id">Customer</Label>
-            <Select
+            <PickerField
+              id="customer_id"
               name="customer_id"
+              label="Customer"
+              placeholder="Pick a customer"
+              searchable
               value={customerId}
-              onValueChange={(v) => setCustomerId(typeof v === 'string' ? v : '')}
-            >
-              <SelectTrigger id="customer_id" className="h-11">
-                <SelectValue placeholder="Pick a customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    No customers yet — add one first.
-                  </div>
-                ) : (
-                  customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                      {c.billing_city ? ` · ${c.billing_city}` : ''}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+              onValueChange={setCustomerId}
+              options={customers.map((c) => ({
+                value: c.id,
+                label: c.name,
+                hint: c.billing_city ?? undefined,
+              }))}
+            />
             {state.fieldErrors?.customer_id && (
               <p className="text-xs text-destructive">{state.fieldErrors.customer_id}</p>
             )}
@@ -461,27 +444,20 @@ function LineItemCard({
             <Label htmlFor={templateSelectId} className="text-xs text-muted-foreground">
               Use template
             </Label>
-            <Select
+            <PickerField
+              id={templateSelectId}
+              label="Use template"
+              placeholder="Pick a template (optional)"
+              searchable
               value={line.template_id ?? ''}
               onValueChange={(v) => {
-                if (typeof v === 'string' && v) onApplyTemplate(v);
+                if (v) onApplyTemplate(v);
               }}
-            >
-              <SelectTrigger id={templateSelectId} className="h-10">
-                <SelectValue placeholder="Pick a template (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Templates</SelectLabel>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                      {t.brand ? ` · ${t.brand}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              options={templates.map((t) => ({
+                value: t.id,
+                label: `${t.name}${t.brand ? ` · ${t.brand}` : ''}`,
+              }))}
+            />
           </div>
         )}
 
@@ -510,21 +486,14 @@ function LineItemCard({
           </div>
           <div className="space-y-1">
             <Label htmlFor={`unit-${line.uid}`}>Unit</Label>
-            <Select
+            <PickerField
+              id={`unit-${line.uid}`}
+              label="Unit"
+              placeholder="Pick"
               value={line.unit}
-              onValueChange={(v) => onPatch({ unit: typeof v === 'string' ? (v as Unit) : '' })}
-            >
-              <SelectTrigger id={`unit-${line.uid}`} className="h-11">
-                <SelectValue placeholder="Pick" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {UNIT_LABELS[u]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={(v) => onPatch({ unit: v as Unit })}
+              options={UNITS.map((u) => ({ value: u, label: UNIT_LABELS[u] }))}
+            />
             {error?.unit && <p className="text-xs text-destructive">{error.unit}</p>}
           </div>
         </div>
