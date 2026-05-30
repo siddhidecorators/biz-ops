@@ -157,3 +157,13 @@ export const PAYMENT_MODE_LABELS: Record<PaymentMode, string> = {
 };
 
 export type GstType = 'intra_state' | 'inter_state';
+
+export const LEAD_STATUSES = ['new', 'contacted', 'quoted', 'won', 'lost'] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  quoted: 'Quoted',
+  won: 'Won',
+  lost: 'Lost',
+};

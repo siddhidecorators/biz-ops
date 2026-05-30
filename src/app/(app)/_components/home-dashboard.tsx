@@ -9,6 +9,7 @@ import {
   ReceiptIcon,
   SettingsIcon,
   BarChart3Icon,
+  UserPlusIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatINR } from '@/lib/format';
@@ -108,24 +109,53 @@ export function HomeDashboard({
           />
         </div>
 
-        <Link href="/reports" className="mt-3 block">
-          <Card size="sm" className="transition-colors hover:bg-muted active:bg-muted">
-            <CardContent className="flex items-center gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-primary">
-                <BarChart3Icon className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">Reports</p>
-                <p className="text-xs text-muted-foreground">GST, sales &amp; who owes you</p>
-              </div>
-              <span aria-hidden className="text-muted-foreground">
-                ›
-              </span>
-            </CardContent>
-          </Card>
-        </Link>
+        <div className="mt-3 space-y-2.5">
+          <QuickLink
+            href="/leads"
+            Icon={UserPlusIcon}
+            title="Leads"
+            subtitle="Inquiries & follow-ups"
+          />
+          <QuickLink
+            href="/reports"
+            Icon={BarChart3Icon}
+            title="Reports"
+            subtitle="GST, sales & who owes you"
+          />
+        </div>
       </main>
     </>
+  );
+}
+
+function QuickLink({
+  href,
+  Icon,
+  title,
+  subtitle,
+}: {
+  href: string;
+  Icon: typeof UsersIcon;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <Link href={href} className="block">
+      <Card size="sm" className="transition-colors hover:bg-muted active:bg-muted">
+        <CardContent className="flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-primary">
+            <Icon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          </div>
+          <span aria-hidden className="text-muted-foreground">
+            ›
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
