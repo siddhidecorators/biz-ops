@@ -17,7 +17,13 @@ import { AppBar } from '../../_components/app-bar';
 
 const SEARCH_DEBOUNCE_MS = 200;
 
-export function CustomersList({ initialQuery }: { initialQuery: string }) {
+export function CustomersList({
+  initialQuery,
+  initialData,
+}: {
+  initialQuery: string;
+  initialData?: CustomerListRow[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -52,6 +58,10 @@ export function CustomersList({ initialQuery }: { initialQuery: string }) {
     queryFn: () => fetchCustomersList(appliedTerm),
     // Keep showing the previous result while a new search loads — no blink.
     placeholderData: (prev) => prev,
+    // Seed the first paint from the server, but only for the initial search term.
+    initialData: appliedTerm === initialQuery ? initialData : undefined,
+    // Customer list changes rarely and mutations invalidate it — fewer refetches.
+    staleTime: 5 * 60_000,
   });
 
   const total = customers?.length ?? 0;

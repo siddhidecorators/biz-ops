@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/browser';
 import type { Craft, Unit } from '@/lib/enums';
 
@@ -23,12 +24,11 @@ export const productKeys = {
   detail: (id: string) => [...productKeys.details(), id] as const,
 };
 
-export async function fetchProductsList({
-  showAll,
-}: {
-  showAll: boolean;
-}): Promise<ProductListRow[]> {
-  const supabase = createClient();
+export async function fetchProductsList(
+  { showAll }: { showAll: boolean },
+  client?: SupabaseClient,
+): Promise<ProductListRow[]> {
+  const supabase = client ?? createClient();
   let query = supabase
     .from('product_templates')
     .select(

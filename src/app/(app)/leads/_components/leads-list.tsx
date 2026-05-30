@@ -19,10 +19,11 @@ const STATUS_STYLE: Record<LeadStatus, string> = {
   lost: 'bg-muted text-muted-foreground ring-border',
 };
 
-export function LeadsList() {
+export function LeadsList({ initialData }: { initialData?: LeadListRow[] }) {
   const { data, isPending, isError, error } = useQuery({
     queryKey: leadKeys.list(),
-    queryFn: fetchLeads,
+    queryFn: () => fetchLeads(),
+    initialData,
   });
   const [filter, setFilter] = useState<'all' | LeadStatus>('all');
 

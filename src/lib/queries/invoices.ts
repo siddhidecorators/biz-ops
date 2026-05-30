@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/browser';
 import type { InvoiceStatus, PaymentStatus } from '@/lib/enums';
 
@@ -21,8 +22,10 @@ export const invoiceKeys = {
   detail: (id: string) => [...invoiceKeys.details(), id] as const,
 };
 
-export async function fetchInvoicesList(): Promise<InvoiceListRow[]> {
-  const supabase = createClient();
+export async function fetchInvoicesList(
+  client?: SupabaseClient,
+): Promise<InvoiceListRow[]> {
+  const supabase = client ?? createClient();
   const { data, error } = await supabase
     .from('invoices')
     .select(

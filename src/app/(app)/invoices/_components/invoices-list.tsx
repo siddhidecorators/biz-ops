@@ -21,7 +21,7 @@ const PAY_VARIANT: Record<PaymentStatus, 'danger' | 'warning' | 'success'> = {
   paid: 'success',
 };
 
-export function InvoicesList() {
+export function InvoicesList({ initialData }: { initialData?: InvoiceListRow[] }) {
   const {
     data: invoices,
     isPending,
@@ -29,7 +29,8 @@ export function InvoicesList() {
     error,
   } = useQuery({
     queryKey: invoiceKeys.list(),
-    queryFn: fetchInvoicesList,
+    queryFn: () => fetchInvoicesList(),
+    initialData,
   });
 
   const [term, setTerm] = useState('');

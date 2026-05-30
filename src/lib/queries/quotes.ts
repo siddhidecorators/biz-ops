@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/browser';
 import type { QuoteStatus } from '@/lib/enums';
 
@@ -20,8 +21,10 @@ export const quoteKeys = {
   detail: (id: string) => [...quoteKeys.details(), id] as const,
 };
 
-export async function fetchQuotesList(): Promise<QuoteListRow[]> {
-  const supabase = createClient();
+export async function fetchQuotesList(
+  client?: SupabaseClient,
+): Promise<QuoteListRow[]> {
+  const supabase = client ?? createClient();
   const { data, error } = await supabase
     .from('quotes')
     .select(

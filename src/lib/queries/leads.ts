@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/browser';
 import type { LeadStatus } from '@/lib/enums';
 
@@ -18,8 +19,10 @@ export const leadKeys = {
   detail: (id: string) => [...leadKeys.details(), id] as const,
 };
 
-export async function fetchLeads(): Promise<LeadListRow[]> {
-  const supabase = createClient();
+export async function fetchLeads(
+  client?: SupabaseClient,
+): Promise<LeadListRow[]> {
+  const supabase = client ?? createClient();
   const { data, error } = await supabase
     .from('leads')
     .select('id, name, phone, source, status, created_at')

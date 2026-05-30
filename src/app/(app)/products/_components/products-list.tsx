@@ -40,7 +40,13 @@ function chapterOf(craft: Craft): keyof typeof CRAFT_GROUPS {
   return ALL_CHAPTERS[0];
 }
 
-export function ProductsList({ initialShowAll }: { initialShowAll: boolean }) {
+export function ProductsList({
+  initialShowAll,
+  initialData,
+}: {
+  initialShowAll: boolean;
+  initialData?: ProductListRow[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showAll, setShowAll] = useState(initialShowAll);
@@ -65,6 +71,9 @@ export function ProductsList({ initialShowAll }: { initialShowAll: boolean }) {
     queryKey: productKeys.list({ showAll }),
     queryFn: () => fetchProductsList({ showAll }),
     placeholderData: (prev) => prev,
+    initialData: showAll === initialShowAll ? initialData : undefined,
+    // Catalogue changes rarely and mutations invalidate it — avoid needless refetches.
+    staleTime: 5 * 60_000,
   });
 
   // Bucket by chapter using CRAFT_GROUPS

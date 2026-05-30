@@ -25,7 +25,7 @@ const STATUS_STYLE: Record<QuoteStatus, string> = {
   expired: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
 };
 
-export function QuotesList() {
+export function QuotesList({ initialData }: { initialData?: QuoteListRow[] }) {
   const {
     data: quotes,
     isPending,
@@ -33,7 +33,8 @@ export function QuotesList() {
     error,
   } = useQuery({
     queryKey: quoteKeys.list(),
-    queryFn: fetchQuotesList,
+    queryFn: () => fetchQuotesList(),
+    initialData,
   });
 
   const [term, setTerm] = useState('');
