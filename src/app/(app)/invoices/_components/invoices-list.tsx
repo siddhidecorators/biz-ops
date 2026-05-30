@@ -5,9 +5,9 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { formatINR, formatDateDMY } from '@/lib/format';
 import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/lib/enums';
+import { Badge } from '@/components/ui/badge';
 import {
   invoiceKeys,
   fetchInvoicesList,
@@ -15,10 +15,10 @@ import {
 } from '@/lib/queries/invoices';
 import { AppBar } from '../../_components/app-bar';
 
-const PAY_STYLE: Record<PaymentStatus, string> = {
-  unpaid: 'bg-rose-500/10 text-rose-700 ring-rose-500/30 dark:text-rose-300',
-  partial: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
-  paid: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
+const PAY_VARIANT: Record<PaymentStatus, 'danger' | 'warning' | 'success'> = {
+  unpaid: 'danger',
+  partial: 'warning',
+  paid: 'success',
 };
 
 export function InvoicesList() {
@@ -144,14 +144,13 @@ function InvoiceRow({ invoice: inv }: { invoice: InvoiceListRow }) {
               <p className="truncate text-sm font-medium text-muted-foreground">
                 {inv.invoice_number}
               </p>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1',
-                  PAY_STYLE[inv.payment_status],
-                )}
+              <Badge
+                variant={PAY_VARIANT[inv.payment_status]}
+                size="sm"
+                className="shrink-0 uppercase"
               >
                 {PAYMENT_STATUS_LABELS[inv.payment_status]}
-              </span>
+              </Badge>
             </div>
             <p className="truncate text-base font-medium">{inv.customers?.name ?? '—'}</p>
             {inv.project_label && (

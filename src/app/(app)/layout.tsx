@@ -9,7 +9,7 @@ export default function AppShellLayout({
 }) {
   return (
     <>
-      <div className="pb-20">{children}</div>
+      <div className="pb-24">{children}</div>
       <BottomNav />
       <ToastFromQuery />
       <NetworkStatusBadge />

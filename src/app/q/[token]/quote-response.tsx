@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { CheckIcon, XIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/browser';
+import { Confetti, SuccessCheck } from '@/components/celebration';
 
 type Outcome = 'accepted' | 'declined';
 
@@ -26,6 +27,7 @@ export function QuoteResponse({
   const [outcome, setOutcome] = useState<Outcome | null>(resolvedInitial);
   const [pending, setPending] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [justAccepted, setJustAccepted] = useState(false);
 
   // Only draft/sent quotes are still open to a decision.
   const canRespond = ['draft', 'sent'].includes(initialStatus);
@@ -42,6 +44,7 @@ export function QuoteResponse({
       if (rpcError) throw rpcError;
       if (data === 'accepted' || (accept && data === 'already_accepted')) {
         setOutcome('accepted');
+        if (accept) setJustAccepted(true);
       } else if (data === 'declined') {
         setOutcome('declined');
       } else if (data === 'not_found') {
@@ -58,9 +61,13 @@ export function QuoteResponse({
 
   if (outcome === 'accepted') {
     return (
-      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-4 text-center">
-        <p className="text-base font-semibold text-emerald-700">✓ Quote accepted</p>
-        <p className="mt-1 text-sm text-emerald-700/80">
+      <div className="relative rounded-xl border border-success/30 bg-success-tint px-4 py-5 text-center">
+        {justAccepted && <Confetti />}
+        <span className="mx-auto grid size-12 place-items-center rounded-full bg-success/15 text-success-strong">
+          <SuccessCheck className="size-7" />
+        </span>
+        <p className="mt-2 font-heading text-lg text-success-strong">Quote accepted</p>
+        <p className="mt-0.5 text-sm text-success-strong/80">
           Thank you! We&apos;ll be in touch to take it forward.
         </p>
       </div>

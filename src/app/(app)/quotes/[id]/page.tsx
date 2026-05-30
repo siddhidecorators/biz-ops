@@ -377,6 +377,14 @@ function buildPdfData({
     issue_date: quote.issue_date,
     valid_until: quote.valid_until,
     reverse_charge: false,
+    watermark:
+      quote.status === 'expired'
+        ? 'EXPIRED'
+        : quote.status === 'declined'
+          ? 'DECLINED'
+          : quote.status === 'draft'
+            ? 'DRAFT'
+            : null,
     place_of_supply: pos ? STATE_BY_CODE[pos]?.name ?? pos : null,
     org: {
       name: org.name,

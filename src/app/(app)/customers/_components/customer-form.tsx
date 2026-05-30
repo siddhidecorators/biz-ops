@@ -7,16 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NCR_STATES, NON_NCR_STATES } from '@/lib/india';
 import { CUSTOMER_TYPES, CUSTOMER_TYPE_LABELS } from '@/lib/enums';
@@ -73,18 +64,16 @@ export function CustomerForm({
           />
           <div className="space-y-1">
             <Label htmlFor="customer_type">Type</Label>
-            <Select name="customer_type" defaultValue={d.customer_type ?? 'homeowner'}>
-              <SelectTrigger id="customer_type" className="h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CUSTOMER_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {CUSTOMER_TYPE_LABELS[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PickerField
+              id="customer_type"
+              name="customer_type"
+              label="Customer type"
+              defaultValue={d.customer_type ?? 'homeowner'}
+              options={CUSTOMER_TYPES.map((t) => ({
+                value: t,
+                label: CUSTOMER_TYPE_LABELS[t],
+              }))}
+            />
             {state.fieldErrors?.customer_type && (
               <p className="text-xs text-destructive">{state.fieldErrors.customer_type}</p>
             )}
@@ -149,30 +138,24 @@ export function CustomerForm({
             <Field name="billing_city" label="City" defaultValue={d.billing_city} />
             <div className="space-y-1">
               <Label htmlFor="billing_state">State / UT</Label>
-              <Select name="billing_state" defaultValue={d.billing_state ?? ''}>
-                <SelectTrigger id="billing_state" className="h-11">
-                  <SelectValue placeholder="Pick a state" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Delhi NCR</SelectLabel>
-                    {NCR_STATES.map((s) => (
-                      <SelectItem key={s.code} value={s.code}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>Other states / UTs</SelectLabel>
-                    {NON_NCR_STATES.map((s) => (
-                      <SelectItem key={s.code} value={s.code}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <PickerField
+                id="billing_state"
+                name="billing_state"
+                label="State / UT"
+                placeholder="Pick a state"
+                defaultValue={d.billing_state ?? ''}
+                searchable
+                groups={[
+                  {
+                    label: 'Delhi NCR',
+                    options: NCR_STATES.map((s) => ({ value: s.code, label: s.name })),
+                  },
+                  {
+                    label: 'Other states / UTs',
+                    options: NON_NCR_STATES.map((s) => ({ value: s.code, label: s.name })),
+                  },
+                ]}
+              />
               {state.fieldErrors?.billing_state && (
                 <p className="text-xs text-destructive">{state.fieldErrors.billing_state}</p>
               )}

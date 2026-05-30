@@ -15,16 +15,9 @@ import { AppBar } from '../../_components/app-bar';
 import { PdfDownloadButtons } from '../../quotes/_components/pdf-download-button';
 import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
-import { RecordPaymentDialog } from '../_components/record-payment-dialog';
-import { RemindPaymentButton } from '../_components/remind-payment-button';
 import { PaymentsLedger } from '../_components/payments-ledger';
-import {
-  InvoiceStatusPill,
-  InvoicePaidDueRows,
-  InvoicePaidInFullBanner,
-} from '../_components/invoice-status-block';
+import { InvoiceMoneyHero, InvoiceActions } from '../_components/invoice-money-hero';
 import type { PaymentRow } from '@/lib/queries/payments';
-import { deriveInvoicePaymentState } from '@/lib/queries/payments';
 
 export const metadata = { title: 'Invoice' };
 
@@ -172,11 +165,6 @@ export default async function InvoiceDetailPage({
   const org = orgRes.data ?? null;
   const isIntraState = invoice.gst_type === 'intra_state';
 
-  // Compute initial paid/due/status from the seeded payments. Client components
-  // hydrate the cache with these values, then keep them in sync via useQuery
-  // and optimistic mutations.
-  const initialDerived = deriveInvoicePaymentState(payments, Number(invoice.total));
-
   const billingAddress = invoice.customers
     ? [
         invoice.customers.billing_address_line1,
@@ -210,13 +198,23 @@ export default async function InvoiceDetailPage({
         subtitle={invoice.customers?.name ?? 'Invoice'}
         back={{ href: '/invoices' }}
       />
-      <main className="mx-auto max-w-md space-y-4 px-6 py-5">
-        <InvoiceStatusPill
+      <main className="mx-auto max-w-md space-y-4 px-5 py-5">
+        <InvoiceMoneyHero
           invoiceId={invoice.id}
           invoiceTotal={Number(invoice.total)}
           issueDate={invoice.issue_date}
           gstType={invoice.gst_type}
-          initial={initialDerived}
+          initialPayments={payments}
+        />
+
+        <InvoiceActions
+          invoiceId={invoice.id}
+          invoiceTotal={Number(invoice.total)}
+          invoiceNumber={invoice.invoice_number}
+          shareToken={invoice.share_token}
+          customerPhone={invoice.customers?.phone ?? null}
+          customerName={invoice.customers?.name ?? null}
+          orgName={org?.name ?? null}
           initialPayments={payments}
         />
 
@@ -303,12 +301,6 @@ export default async function InvoiceDetailPage({
             <div className="mt-2 border-t border-border pt-2">
               <Row label="Total" value={Number(invoice.total)} emphasize />
             </div>
-            <InvoicePaidDueRows
-              invoiceId={invoice.id}
-              invoiceTotal={Number(invoice.total)}
-              initial={initialDerived}
-              initialPayments={payments}
-            />
           </CardContent>
         </Card>
 
@@ -326,26 +318,6 @@ export default async function InvoiceDetailPage({
         <PaymentsLedger invoiceId={invoice.id} initialPayments={payments} />
 
         <div className="space-y-3 pt-2">
-          <RecordPaymentDialog
-            invoiceId={invoice.id}
-            invoiceTotal={Number(invoice.total)}
-            invoiceNumber={invoice.invoice_number}
-          />
-          {org && Number(invoice.amount_due) > 0 && (
-            <RemindPaymentButton
-              shareToken={invoice.share_token}
-              customerPhone={invoice.customers?.phone ?? null}
-              customerName={invoice.customers?.name ?? null}
-              invoiceNumber={invoice.invoice_number}
-              amountDue={Number(invoice.amount_due)}
-              orgName={org.name}
-            />
-          )}
-          <InvoicePaidInFullBanner
-            invoiceId={invoice.id}
-            invoiceTotal={Number(invoice.total)}
-            initialPayments={payments}
-          />
           {org && invoice.customers && (
             <PdfDownloadButtons
               data={buildInvoicePdfData({ invoice, lines, org, isIntraState })}
@@ -384,6 +356,14 @@ function buildInvoicePdfData({
     doc_number: invoice.invoice_number,
     issue_date: invoice.issue_date,
     reverse_charge: false,
+    watermark:
+      invoice.status === 'cancelled'
+        ? 'CANCELLED'
+        : invoice.payment_status === 'paid'
+          ? 'PAID'
+          : invoice.status === 'draft'
+            ? 'DRAFT'
+            : null,
     place_of_supply: pos ? STATE_BY_CODE[pos]?.name ?? pos : null,
     org: {
       name: org.name,

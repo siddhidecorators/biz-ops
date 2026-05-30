@@ -19,7 +19,12 @@ import { STATE_BY_CODE } from '@/lib/india';
 // react-pdf's built-in fonts (Helvetica, Times) predate the U+20B9 ₹ glyph, so
 // currency used to render as "Rs 1,250.00". We bundle Roboto (regular + bold),
 // which includes ₹, served from /public/fonts so there's no CDN dependency at
-// render time. Roboto-Bold covers what used to be the serif display + bold body.
+// render time.
+//
+// FUTURE: to give the document a serif masthead that echoes the app's Fraunces
+// display face, drop a STATIC serif .ttf (e.g. Fraunces or PT Serif) into
+// public/fonts, Font.register it as 'Serif' here, and swap orgName + docType to
+// fontFamily 'Serif'. (Keep money amounts in Roboto — most serifs lack the ₹.)
 Font.register({ family: 'Roboto', src: '/fonts/Roboto-Regular.ttf' });
 Font.register({ family: 'Roboto-Bold', src: '/fonts/Roboto-Bold.ttf' });
 // react-pdf hyphenates by default; disable it so words/amounts don't get split.
@@ -29,6 +34,8 @@ const TERRACOTTA = '#B8552A';
 const TERRACOTTA_DARK = '#7E3812';
 const TERRACOTTA_SOFT = '#F4E6DD';
 const CREAM = '#FBF7F2';
+const ZEBRA = '#FAF6F2';
+const WATERMARK = '#E8D6CB';
 const INK = '#1A1410';
 const INK_SOFT = '#3D332C';
 const MUTED = '#7A716A';
@@ -65,9 +72,28 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto',
     fontSize: 9,
     color: INK,
-    padding: 32,
+    paddingHorizontal: 32,
     paddingTop: 0,
-    paddingBottom: 0,
+    paddingBottom: 26,
+  },
+
+  // ─── Watermark (status) ────────────────────────────────────────
+  watermark: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: 'rotate(-26deg)',
+  },
+  watermarkText: {
+    fontSize: 130,
+    fontFamily: 'Roboto-Bold',
+    color: WATERMARK,
+    letterSpacing: 10,
+    textTransform: 'uppercase',
   },
 
   // ─── Top band ──────────────────────────────────────────────────
@@ -88,12 +114,12 @@ const styles = StyleSheet.create({
     borderBottomColor: TERRACOTTA,
   },
   brandLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, maxWidth: 340 },
-  logo: { width: 50, height: 50, objectFit: 'contain' },
+  logo: { width: 52, height: 52, objectFit: 'contain' },
   orgName: {
     fontFamily: 'Roboto-Bold',
-    fontSize: 17,
+    fontSize: 18,
     color: INK,
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     lineHeight: 1.1,
   },
   tagline: {
@@ -124,6 +150,13 @@ const styles = StyleSheet.create({
 
   // Doc type pill (right side of header)
   docTypeWrap: { alignItems: 'flex-end', minWidth: 200 },
+  docOriginal: {
+    fontSize: 6.5,
+    color: MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 3,
+  },
   docType: {
     fontFamily: 'Roboto-Bold',
     fontSize: 22,
@@ -142,7 +175,7 @@ const styles = StyleSheet.create({
   docMetaRow: { flexDirection: 'row', marginTop: 6, gap: 14 },
   docMetaCol: { alignItems: 'flex-end' },
   docMetaLabel: {
-    fontSize: 7,
+    fontSize: 7.5,
     color: MUTED,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -162,7 +195,7 @@ const styles = StyleSheet.create({
   },
   partyCol: { flex: 1 },
   partyLabel: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.8,
@@ -178,12 +211,6 @@ const styles = StyleSheet.create({
   },
   partyLine: { fontSize: 9, color: INK_SOFT, lineHeight: 1.5 },
   partyMuted: { fontSize: 8.5, color: MUTED, marginTop: 4, lineHeight: 1.5 },
-  partyEmpty: {
-    fontFamily: 'Roboto',
-    fontSize: 9,
-    color: MUTED,
-    marginTop: 2,
-  },
 
   // Project strip
   projectRow: {
@@ -195,7 +222,7 @@ const styles = StyleSheet.create({
     borderBottomColor: RULE_HAIR,
   },
   projectLabel: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: MUTED,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -212,18 +239,18 @@ const styles = StyleSheet.create({
   thead: {
     flexDirection: 'row',
     paddingVertical: 5,
-    paddingHorizontal: 0,
+    backgroundColor: TERRACOTTA_SOFT,
     borderTopWidth: 1,
-    borderTopColor: INK,
+    borderTopColor: TERRACOTTA,
     borderBottomWidth: 0.5,
-    borderBottomColor: INK,
+    borderBottomColor: TERRACOTTA,
   },
   th: {
-    fontSize: 7.5,
+    fontSize: 8,
     fontFamily: 'Roboto-Bold',
-    color: INK,
+    color: TERRACOTTA_DARK,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   row: {
     flexDirection: 'row',
@@ -231,29 +258,53 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: RULE_HAIR,
   },
+  rowAlt: { backgroundColor: ZEBRA },
   td: { fontSize: 9, color: INK, lineHeight: 1.4 },
   tdMuted: { fontSize: 7.5, color: MUTED, marginTop: 2, letterSpacing: 0.2 },
 
-  // Columns — sum should equal usable width ~523pt
-  cSn: { width: 22 },
-  cDesc: { flex: 1, paddingRight: 8 },
-  cQty: { width: 50, textAlign: 'right' },
-  cRate: { width: 64, textAlign: 'right' },
+  // Columns — fixed widths sum + flexible description = ~531pt usable
+  cSn: { width: 20, paddingLeft: 4 },
+  cDesc: { flex: 1, paddingRight: 8, paddingLeft: 2 },
+  cQty: { width: 54, textAlign: 'right' },
+  cRate: { width: 62, textAlign: 'right' },
   cTaxable: { width: 70, textAlign: 'right' },
-  cTaxSplit: { width: 60, textAlign: 'right' },
-  cTotal: { width: 78, textAlign: 'right' },
+  cGst: { width: 40, textAlign: 'right' },
+  cTotal: { width: 84, textAlign: 'right', paddingRight: 4 },
   cTotalBold: { fontFamily: 'Roboto-Bold' },
 
-  // ─── Totals ────────────────────────────────────────────────────
-  totalsWrap: {
+  // ─── Tax summary + totals row ──────────────────────────────────
+  summaryRow: {
     flexDirection: 'row',
-    marginTop: 2,
+    marginTop: 10,
+    gap: 24,
   },
-  totalsSpacer: { flex: 1 },
-  totalsCol: {
-    width: 240,
-    paddingTop: 4,
+  taxSummary: { flex: 1, paddingTop: 2 },
+  taxSummaryLabel: {
+    fontSize: 8,
+    color: TERRACOTTA,
+    textTransform: 'uppercase',
+    letterSpacing: 1.6,
+    fontFamily: 'Roboto-Bold',
+    marginBottom: 4,
   },
+  tsHead: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: RULE,
+    paddingBottom: 2,
+  },
+  tsRow: {
+    flexDirection: 'row',
+    paddingVertical: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: RULE_HAIR,
+  },
+  tsTh: { fontSize: 7, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.6 },
+  tsTd: { fontSize: 8, color: INK_SOFT },
+  tsRate: { width: 42 },
+  tsCell: { flex: 1, textAlign: 'right' },
+
+  totalsCol: { width: 232, paddingTop: 2 },
   totalsLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -350,7 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: CREAM,
   },
   wordsLabel: {
-    fontSize: 7,
+    fontSize: 7.5,
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -372,7 +423,7 @@ const styles = StyleSheet.create({
     borderTopColor: RULE_HAIR,
   },
   termsLabel: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.8,
@@ -387,13 +438,13 @@ const styles = StyleSheet.create({
   },
   termsNumber: {
     width: 13,
-    fontSize: 7.5,
+    fontSize: 8,
     color: MUTED,
     marginTop: 0.5,
   },
   termsText: {
     flex: 1,
-    fontSize: 7.5,
+    fontSize: 8,
     color: INK_SOFT,
     lineHeight: 1.45,
   },
@@ -408,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   noteLabel: {
-    fontSize: 7.5,
+    fontSize: 8,
     fontFamily: 'Roboto-Bold',
     color: MUTED,
     letterSpacing: 0.8,
@@ -434,7 +485,7 @@ const styles = StyleSheet.create({
   footerLeft: { flex: 1, paddingRight: 12 },
   footerRight: { width: 220 },
   footerLabel: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: TERRACOTTA,
     textTransform: 'uppercase',
     letterSpacing: 1.8,
@@ -490,6 +541,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
+
+  // Page number (repeats on every page)
+  pageNum: {
+    position: 'absolute',
+    bottom: 10,
+    right: 32,
+    fontSize: 7.5,
+    color: MUTED,
+  },
 });
 
 export type QuotePdfData = {
@@ -498,8 +558,12 @@ export type QuotePdfData = {
   issue_date: string;
   valid_until?: string;
   reverse_charge?: boolean;
+  /** Optional status stamp shown faintly across the page (PAID, CANCELLED…). */
+  watermark?: string | null;
   org: {
     name: string;
+    /** Optional business tagline. Empty by default — set per-org in Settings. */
+    tagline?: string | null;
     logo_url: string | null;
     gstin: string | null;
     pan: string | null;
@@ -566,6 +630,24 @@ export type QuotePdfData = {
   terms_text: string | null;
 };
 
+type TaxGroup = { rate: number; taxable: number; tax: number };
+
+function taxGroupsOf(lines: QuotePdfData['lines']): TaxGroup[] {
+  const map = new Map<number, TaxGroup>();
+  for (const l of lines) {
+    if (l.tax_amount <= 0 && l.tax_rate_percent <= 0) continue;
+    const g = map.get(l.tax_rate_percent) ?? {
+      rate: l.tax_rate_percent,
+      taxable: 0,
+      tax: 0,
+    };
+    g.taxable = round2(g.taxable + l.amount);
+    g.tax = round2(g.tax + l.tax_amount);
+    map.set(l.tax_rate_percent, g);
+  }
+  return [...map.values()].sort((a, b) => a.rate - b.rate);
+}
+
 export function QuotePDF({ data }: { data: QuotePdfData }) {
   const orgAddressLine = [
     data.org.address_line1,
@@ -604,13 +686,31 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
   ].filter((l): l is string => Boolean(l && l.length > 0));
 
   const showCgstSgst = data.isIntraState;
-  const halfAmt = (l: { tax_amount: number }) => round2(l.tax_amount / 2);
-
   const isQuote = data.doc_type === 'QUOTATION';
+  // Only show a separate "Shipped to / site" column when it actually differs
+  // from the billing address — otherwise the column just repeated it.
+  const hasSiteAddress = installLines.length > 0;
+  const taxGroups = taxGroupsOf(data.lines);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Status watermark — painted first so content sits on top of it */}
+        {data.watermark ? (
+          <View style={styles.watermark} fixed>
+            <Text style={styles.watermarkText}>{data.watermark}</Text>
+          </View>
+        ) : null}
+
+        {/* Page number — repeats on every page */}
+        <Text
+          style={styles.pageNum}
+          fixed
+          render={({ pageNumber, totalPages }) =>
+            totalPages > 1 ? `Page ${pageNumber} of ${totalPages}` : ''
+          }
+        />
+
         {/* Top band */}
         <View style={styles.topBand} />
 
@@ -620,7 +720,9 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
             {data.org.logo_url && <Image src={data.org.logo_url} style={styles.logo} />}
             <View>
               <Text style={styles.orgName}>{data.org.name}</Text>
-              <Text style={styles.tagline}>Crafted interiors • Delhi NCR</Text>
+              {data.org.tagline ? (
+                <Text style={styles.tagline}>{data.org.tagline}</Text>
+              ) : null}
               {orgAddressLine && <Text style={styles.orgAddress}>{orgAddressLine}</Text>}
               {orgContactLine && <Text style={styles.orgContact}>{orgContactLine}</Text>}
               {data.org.gstin && (
@@ -633,6 +735,7 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
           </View>
 
           <View style={styles.docTypeWrap}>
+            {!isQuote && <Text style={styles.docOriginal}>Original for Recipient</Text>}
             <Text style={styles.docType}>{data.doc_type}</Text>
             <Text style={styles.docNumber}>{data.doc_number}</Text>
             <View style={styles.docMetaRow}>
@@ -683,26 +786,23 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
             )}
           </View>
 
-          <View style={styles.partyCol}>
-            <Text style={styles.partyLabel}>
-              {isQuote ? 'Work / site address' : 'Shipped to'}
-            </Text>
-            {/* When no site override, silently repeat the customer's billing
-                details so the right column balances the left visually. */}
-            {(installLines.length > 0 ? null : (
-              <Text style={styles.partyName}>{data.customer.name}</Text>
-            ))}
-            {(installLines.length > 0 ? installLines : customerLines).map((line, i) => (
-              <Text key={i} style={styles.partyLine}>
-                {line}
+          {hasSiteAddress && (
+            <View style={styles.partyCol}>
+              <Text style={styles.partyLabel}>
+                {isQuote ? 'Work / site address' : 'Shipped to'}
               </Text>
-            ))}
-            {isQuote && data.place_of_supply && (
-              <Text style={styles.partyMuted}>
-                Place of supply  {data.place_of_supply}
-              </Text>
-            )}
-          </View>
+              {installLines.map((line, i) => (
+                <Text key={i} style={styles.partyLine}>
+                  {line}
+                </Text>
+              ))}
+              {isQuote && data.place_of_supply && (
+                <Text style={styles.partyMuted}>
+                  Place of supply  {data.place_of_supply}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
         {/* ── Project ──────────────────────────────────────────── */}
@@ -721,73 +821,76 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
             <Text style={[styles.th, styles.cQty]}>Qty</Text>
             <Text style={[styles.th, styles.cRate]}>Rate</Text>
             <Text style={[styles.th, styles.cTaxable]}>Taxable</Text>
-            {showCgstSgst ? (
-              <>
-                <Text style={[styles.th, styles.cTaxSplit]}>CGST</Text>
-                <Text style={[styles.th, styles.cTaxSplit]}>SGST</Text>
-              </>
-            ) : (
-              <Text
-                style={[
-                  styles.th,
-                  styles.cTaxSplit,
-                  { width: styles.cTaxSplit.width * 2 },
-                ]}
-              >
-                IGST
-              </Text>
-            )}
+            <Text style={[styles.th, styles.cGst]}>GST</Text>
             <Text style={[styles.th, styles.cTotal]}>Amount</Text>
           </View>
 
-          {data.lines.map((l, i) => {
-            const subParts: string[] = [];
-            if (l.hsn_sac_code) subParts.push(`HSN/SAC ${l.hsn_sac_code}`);
-            if (l.tax_rate_percent > 0) subParts.push(`GST ${l.tax_rate_percent}%`);
-            const subline = subParts.join('   •   ');
-            return (
-              <View key={i} style={styles.row}>
-                <Text style={[styles.td, styles.cSn, { color: MUTED }]}>{i + 1}</Text>
-                <View style={styles.cDesc}>
-                  <Text style={styles.td}>{l.description}</Text>
-                  {subline && <Text style={styles.tdMuted}>{subline}</Text>}
-                </View>
-                <Text style={[styles.td, styles.cQty]}>
-                  {formatQty(l.quantity)} {UNIT_LABELS[l.unit]}
-                </Text>
-                <Text style={[styles.td, styles.cRate]}>{formatINRForPdf(l.rate)}</Text>
-                <Text style={[styles.td, styles.cTaxable]}>{formatINRForPdf(l.amount)}</Text>
-                {showCgstSgst ? (
-                  <>
-                    <Text style={[styles.td, styles.cTaxSplit]}>
-                      {l.tax_amount > 0 ? formatINRForPdf(halfAmt(l)) : '—'}
-                    </Text>
-                    <Text style={[styles.td, styles.cTaxSplit]}>
-                      {l.tax_amount > 0 ? formatINRForPdf(halfAmt(l)) : '—'}
-                    </Text>
-                  </>
-                ) : (
-                  <Text
-                    style={[
-                      styles.td,
-                      styles.cTaxSplit,
-                      { width: styles.cTaxSplit.width * 2 },
-                    ]}
-                  >
-                    {l.tax_amount > 0 ? formatINRForPdf(l.tax_amount) : '—'}
-                  </Text>
-                )}
-                <Text style={[styles.td, styles.cTotal, styles.cTotalBold]}>
-                  {formatINRForPdf(l.line_total)}
-                </Text>
+          {data.lines.map((l, i) => (
+            <View key={i} style={[styles.row, i % 2 === 1 ? styles.rowAlt : {}]} wrap={false}>
+              <Text style={[styles.td, styles.cSn, { color: MUTED }]}>{i + 1}</Text>
+              <View style={styles.cDesc}>
+                <Text style={styles.td}>{l.description}</Text>
+                {l.hsn_sac_code ? (
+                  <Text style={styles.tdMuted}>HSN/SAC {l.hsn_sac_code}</Text>
+                ) : null}
               </View>
-            );
-          })}
+              <Text style={[styles.td, styles.cQty]}>
+                {formatQty(l.quantity)} {UNIT_LABELS[l.unit]}
+              </Text>
+              <Text style={[styles.td, styles.cRate]}>{formatINRForPdf(l.rate)}</Text>
+              <Text style={[styles.td, styles.cTaxable]}>{formatINRForPdf(l.amount)}</Text>
+              <Text style={[styles.td, styles.cGst]}>
+                {l.tax_rate_percent > 0 ? `${l.tax_rate_percent}%` : '—'}
+              </Text>
+              <Text style={[styles.td, styles.cTotal, styles.cTotalBold]}>
+                {formatINRForPdf(l.line_total)}
+              </Text>
+            </View>
+          ))}
         </View>
 
-        {/* ── Totals ─────────────────────────────────────────── */}
-        <View style={styles.totalsWrap}>
-          <View style={styles.totalsSpacer} />
+        {/* ── Tax summary + totals ─────────────────────────────── */}
+        <View style={styles.summaryRow} wrap={false}>
+          {/* Tax summary by GST rate (left) */}
+          <View style={styles.taxSummary}>
+            {taxGroups.length > 0 && (
+              <>
+                <Text style={styles.taxSummaryLabel}>Tax summary</Text>
+                <View style={styles.tsHead}>
+                  <Text style={[styles.tsTh, styles.tsRate]}>GST%</Text>
+                  <Text style={[styles.tsTh, styles.tsCell]}>Taxable</Text>
+                  {showCgstSgst ? (
+                    <>
+                      <Text style={[styles.tsTh, styles.tsCell]}>CGST</Text>
+                      <Text style={[styles.tsTh, styles.tsCell]}>SGST</Text>
+                    </>
+                  ) : (
+                    <Text style={[styles.tsTh, styles.tsCell]}>IGST</Text>
+                  )}
+                </View>
+                {taxGroups.map((g, i) => (
+                  <View key={i} style={styles.tsRow}>
+                    <Text style={[styles.tsTd, styles.tsRate]}>{g.rate}%</Text>
+                    <Text style={[styles.tsTd, styles.tsCell]}>{formatINRForPdf(g.taxable)}</Text>
+                    {showCgstSgst ? (
+                      <>
+                        <Text style={[styles.tsTd, styles.tsCell]}>
+                          {formatINRForPdf(round2(g.tax / 2))}
+                        </Text>
+                        <Text style={[styles.tsTd, styles.tsCell]}>
+                          {formatINRForPdf(round2(g.tax / 2))}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={[styles.tsTd, styles.tsCell]}>{formatINRForPdf(g.tax)}</Text>
+                    )}
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+
+          {/* Totals (right) */}
           <View style={styles.totalsCol}>
             <View style={styles.totalsLine}>
               <Text style={styles.totalsLabel}>Taxable amount</Text>
@@ -847,7 +950,7 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
         </View>
 
         {/* ── Amount in words ───────────────────────────────────── */}
-        <View style={styles.wordsRow}>
+        <View style={styles.wordsRow} wrap={false}>
           <Text style={styles.wordsLabel}>Amount in words</Text>
           <Text style={styles.wordsValue}>{amountInIndianWords(data.totals.total)}</Text>
         </View>
@@ -876,7 +979,7 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
         </View>
 
         {/* ── Footer (payment + signature) ──────────────────────── */}
-        <View style={styles.footer}>
+        <View style={styles.footer} wrap={false}>
           <View style={styles.footerLeft}>
             {(data.org.bank_account_name ||
               data.org.bank_name ||
@@ -910,7 +1013,6 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
                 )}
               </View>
             )}
-
           </View>
 
           <View style={styles.footerRight}>
