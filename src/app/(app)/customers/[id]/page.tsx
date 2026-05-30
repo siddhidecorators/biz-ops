@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { FileTextIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CustomerForm, type CustomerDefaults } from '../_components/customer-form';
 import { DeleteCustomerButton } from '../_components/delete-button';
@@ -71,6 +73,22 @@ export default async function EditCustomerPage({
         back={{ href: '/customers' }}
       />
       <main className="mx-auto max-w-2xl px-6 py-5">
+        <Link
+          href={`/customers/${customer.id}/statement`}
+          className="mb-5 flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted active:bg-muted"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-primary">
+            <FileTextIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Statement</p>
+            <p className="text-xs text-muted-foreground">Invoices, dues &amp; shareable link</p>
+          </div>
+          <span aria-hidden className="text-muted-foreground">
+            ›
+          </span>
+        </Link>
+
         <CustomerForm action={action} defaults={defaults} submitLabel="Save changes" />
 
         <div className="mt-8 border-t border-border pt-6">

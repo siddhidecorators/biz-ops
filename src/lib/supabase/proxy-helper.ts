@@ -1,9 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// '/q' is the public, token-gated quote view customers open from a WhatsApp
-// link — it must be reachable without a session.
-const PUBLIC_PATHS = ['/sign-in', '/auth', '/q', '/i'];
+// Public, token-gated pages customers open from a WhatsApp link — must be
+// reachable without a session: /q (quote), /i (invoice), /s (statement).
+const PUBLIC_PATHS = ['/sign-in', '/auth', '/q', '/i', '/s'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
