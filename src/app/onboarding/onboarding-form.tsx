@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PickerField } from '@/components/ui/picker-field';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { INDIAN_STATES } from '@/lib/india';
+import { NCR_STATES, NON_NCR_STATES } from '@/lib/india';
 import { saveOnboarding, type OnboardingFormState } from './actions';
 
 export type OrgRow = {
@@ -83,7 +83,16 @@ export function OnboardingForm({
                 placeholder="Pick a state"
                 searchable
                 defaultValue={org.state ?? ''}
-                options={INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))}
+                groups={[
+                  {
+                    label: 'Delhi NCR',
+                    options: NCR_STATES.map((s) => ({ value: s.code, label: s.name })),
+                  },
+                  {
+                    label: 'Other states / UTs',
+                    options: NON_NCR_STATES.map((s) => ({ value: s.code, label: s.name })),
+                  },
+                ]}
               />
               {state.fieldErrors?.state && <p className="text-xs text-destructive">{state.fieldErrors.state}</p>}
             </div>
