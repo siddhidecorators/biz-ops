@@ -8,6 +8,7 @@ import {
   FileTextIcon,
   ReceiptIcon,
   SettingsIcon,
+  BarChart3Icon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatINR } from '@/lib/format';
@@ -106,6 +107,23 @@ export function HomeDashboard({
             errored={isError}
           />
         </div>
+
+        <Link href="/reports" className="mt-3 block">
+          <Card size="sm" className="transition-colors hover:bg-muted active:bg-muted">
+            <CardContent className="flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-tint text-primary">
+                <BarChart3Icon className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Reports</p>
+                <p className="text-xs text-muted-foreground">GST, sales &amp; who owes you</p>
+              </div>
+              <span aria-hidden className="text-muted-foreground">
+                ›
+              </span>
+            </CardContent>
+          </Card>
+        </Link>
       </main>
     </>
   );
