@@ -9,8 +9,10 @@ import {
   type PaymentStatus,
   type Unit,
 } from '@/lib/enums';
-import { formatINR, formatDateDMY } from '@/lib/format';
+import { PlusIcon } from 'lucide-react';
+import { formatINR, formatDateDMY, round2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { fetchExpensesForInvoice } from '@/lib/queries/expenses';
 import { AppBar } from '../../_components/app-bar';
 import { PdfDownloadButtons } from '../../quotes/_components/pdf-download-button';
 import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
@@ -115,7 +117,7 @@ export default async function InvoiceDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [invoiceRes, linesRes, paymentsRes, milestonesRes, orgRes] = await Promise.all([
+  const [invoiceRes, linesRes, paymentsRes, milestonesRes, orgRes, expensesList] = await Promise.all([
     supabase
       .from('invoices')
       .select(
@@ -163,6 +165,7 @@ export default async function InvoiceDetailPage({
         .eq('id', profile.org_id)
         .maybeSingle<OrgForPdf>();
     })(),
+    fetchExpensesForInvoice(id, supabase).catch(() => []),
   ]);
 
   const invoice = invoiceRes.data;
@@ -325,6 +328,59 @@ export default async function InvoiceDetailPage({
             </div>
           </CardContent>
         </Card>
+
+        {(() => {
+          const costs = round2(expensesList.reduce((s, e) => s + Number(e.amount), 0));
+          const revenue = Number(invoice.total);
+          const profit = round2(revenue - costs);
+          const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+          return (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Costs &amp; profit</CardTitle>
+                  <Link
+                    href={`/expenses/new?invoice=${invoice.id}`}
+                    className="-mr-1 inline-flex h-8 items-center gap-1 rounded-lg px-2 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                  >
+                    <PlusIcon className="size-3.5" /> Add cost
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm">
+                {costs > 0 ? (
+                  <>
+                    <Row label="Invoice value" value={revenue} />
+                    <Row label="Costs logged" value={costs} muted />
+                    <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
+                      <span className="font-semibold">
+                        Profit{' '}
+                        {revenue > 0 && (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            ({margin}%)
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          'font-semibold',
+                          profit >= 0 ? 'text-success-strong' : 'text-destructive',
+                        )}
+                      >
+                        {formatINR(profit)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">
+                    No costs logged yet. Add materials, labour and transport to see your profit on
+                    this job.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {invoice.notes && (
           <Card>

@@ -10,6 +10,7 @@ import {
   UsersIcon,
   UserPlusIcon,
   PackageIcon,
+  WalletIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -55,6 +56,12 @@ const ACTIONS: CreateAction[] = [
     label: 'New product or service',
     sub: 'Add to your catalogue',
     Icon: PackageIcon,
+  },
+  {
+    href: '/expenses/new',
+    label: 'New expense',
+    sub: 'Log a material or labour cost',
+    Icon: WalletIcon,
   },
 ];
 

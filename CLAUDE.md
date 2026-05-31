@@ -114,7 +114,7 @@ state-picker order · `33ccca9` dropdowns-show-name + lag · `4de9e88` perf ·
 
 Migrations live in `supabase/migrations/`. **CRITICAL: there is no migration
 tracking.** They are applied ad-hoc via the Supabase Management API (§6), not
-the CLI. As of 2026-05-31 **0001–0015 ARE applied** to the live DB. If you add a
+the CLI. As of 2026-05-31 **0001–0016 ARE applied** to the live DB. If you add a
 migration you must apply it yourself AND ideally set up the CLI.
 
 > A real bug happened because a migration existed in the repo but was never
@@ -179,6 +179,10 @@ migration you must apply it yourself AND ideally set up the CLI.
 - **0015_list_org_members** *(applied)* — `list_org_members()` definer RPC (joins
   memberships→profiles for the active org) so the Team page shows co-members whose
   home org differs.
+- **0016_expenses** *(applied this session)* — `expenses` (org_id, optional
+  `invoice_id` ON DELETE SET NULL, `category` enum, amount, expense_date, vendor,
+  description) + `expense_category` enum. Org-scoped RLS (`current_org_id()`).
+  Powers the cost register + profit-per-project (revenue − linked costs).
 
 **Key FK on-delete notes (matter for delete/cascade):** `profiles.org_id` and
 `quotes/invoices.customer_id` are **ON DELETE RESTRICT**; `customers/products/
@@ -208,6 +212,7 @@ unguessable `share_token`. **Never** add a broad `anon` RLS policy.
 - `/quotes` (+ `/new`, `/[id]`, `/[id]/edit`)
 - `/invoices` (+ `/new` ← NEW direct-create, `/[id]`)
 - `/leads` (+ `/new`, `/[id]`)
+- `/expenses` (+ `/new`) — cost register; profit-per-job shows on the invoice
 - `/reports`
 - `/settings` (+ `/settings/team`, owner-only). Settings reuses `OnboardingForm`
   and now has an owner-only **Delete business** danger zone.
@@ -468,7 +473,15 @@ business keeps their account).
   **shipped** (migrations 0011 + 0012). Remaining follow-ups: milestone-aware
   reporting, and showing the schedule on the public `/q` + `/i/[token]` web pages
   (the shared PDFs already carry it).
-- **Expenses/purchases register → profit per project** (+ GST input credit).
+- ~~Expenses/purchases register → profit per project~~ — **shipped** (migration
+  0016, `/expenses` + invoice Costs & profit card). Remaining: GST **input-credit**
+  tracking (add a `gst_amount` to expenses) + an expense report/summary.
+- **Multi-business create-action fix (do soon):** the older create actions
+  (`createLead/createCustomer/createProduct/createQuote/createInvoice`) still
+  insert `org_id: profile.org_id` (HOME org). For a user whose ACTIVE org ≠ home,
+  the RLS `with check (org_id = current_org_id())` will REJECT the insert. Fix:
+  select `active_org_id` too and use `active_org_id ?? org_id` (as `createExpense`
+  already does). Latent until someone actually owns a 2nd business.
 - **Product photos → visual quotes** (decor differentiator).
 - **Reports visualisation** (charts), **credit notes / invoice cancellation**
   (GST-compliant), **migration tracking** (Supabase CLI), **Hindi/bilingual**.
@@ -514,13 +527,13 @@ src/
 ├── lib/
 │   ├── supabase/                   server.ts (async), browser.ts, proxy-helper.ts
 │   ├── queries/                    customers, products, quotes, invoices, payments,
-│   │                               dashboard, reports, statements, leads, team
+│   │                               dashboard, reports, statements, leads, team, expenses
 │   │                               (fetchers now accept an optional SupabaseClient)
 │   ├── auth/active-org.ts (NEW: getActiveOrgContext — active org + role)
 │   ├── enums.ts  india.ts  format.ts  use-count-up.ts  milestones.ts  utils.ts
 ├── proxy.ts                        auth refresh + public-path bypass
 public/fonts/Roboto-*.ttf           (no serif yet) · public/sw.js (v3)
-supabase/migrations/0001..0015.sql  (0013 memberships + 0014 delete_org_multi + 0015 list_org_members, applied)
+supabase/migrations/0001..0016.sql  (0013 memberships, 0014 delete_org_multi, 0015 list_org_members, 0016 expenses — all applied)
 ```
 
 When in doubt, copy the nearest existing implementation of the same shape — the

@@ -167,3 +167,19 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   won: 'Won',
   lost: 'Lost',
 };
+
+export const EXPENSE_CATEGORIES = [
+  'materials',
+  'labour',
+  'transport',
+  'subcontractor',
+  'other',
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+export const EXPENSE_CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  materials: 'Materials',
+  labour: 'Labour',
+  transport: 'Transport',
+  subcontractor: 'Subcontractor',
+  other: 'Other',
+};

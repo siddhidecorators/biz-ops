@@ -10,6 +10,7 @@ import {
   SettingsIcon,
   ChevronRightIcon,
   CircleCheckIcon,
+  WalletIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatINR } from '@/lib/format';
@@ -81,6 +82,13 @@ export function HomeDashboard({
             tone="info"
             title="Leads"
             subtitle="Enquiries & follow-ups"
+          />
+          <NavRow
+            href="/expenses"
+            Icon={WalletIcon}
+            tone="warning"
+            title="Expenses"
+            subtitle="Costs & profit per job"
           />
           <NavRow
             href="/reports"

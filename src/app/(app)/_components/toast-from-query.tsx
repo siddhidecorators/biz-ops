@@ -9,6 +9,7 @@ import { productKeys } from '@/lib/queries/products';
 import { quoteKeys } from '@/lib/queries/quotes';
 import { invoiceKeys } from '@/lib/queries/invoices';
 import { leadKeys } from '@/lib/queries/leads';
+import { expenseKeys } from '@/lib/queries/expenses';
 
 const MESSAGES: Record<string, string> = {
   customer_created: 'Customer added',
@@ -24,6 +25,7 @@ const MESSAGES: Record<string, string> = {
   lead_created: 'Lead added',
   lead_updated: 'Lead updated',
   lead_deleted: 'Lead deleted',
+  expense_created: 'Expense saved',
   settings_saved: 'Settings saved',
 };
 
@@ -44,6 +46,7 @@ const INVALIDATIONS: Record<string, readonly unknown[][]> = {
   lead_created: [[...leadKeys.lists()]],
   lead_updated: [[...leadKeys.lists()], [...leadKeys.details()]],
   lead_deleted: [[...leadKeys.lists()]],
+  expense_created: [[...expenseKeys.lists()]],
 };
 
 function ToastFromQueryInner({ paramKey = 'saved' }: { paramKey?: string }) {
