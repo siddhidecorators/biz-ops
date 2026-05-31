@@ -70,8 +70,8 @@ export function CreateMenu() {
       </DialogPrimitive.Trigger>
 
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/40 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-        <DialogPrimitive.Popup className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl bg-popover p-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg ring-1 ring-foreground/10 duration-150 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0">
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/30 duration-200 supports-backdrop-filter:backdrop-blur-[2px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Popup className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md rounded-t-3xl bg-popover p-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg ring-1 ring-foreground/10 duration-300 ease-out outline-none will-change-transform data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-6 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-6">
           <div aria-hidden className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-border" />
           <DialogPrimitive.Title className="text-overline px-2 pb-2">
             Create
