@@ -476,7 +476,9 @@ business keeps their account).
 - ~~Expenses/purchases register → profit per project~~ — **shipped** (migration
   0016, `/expenses` + invoice Costs & profit card). Remaining: GST **input-credit**
   tracking (add a `gst_amount` to expenses) + an expense report/summary.
-- **Multi-business create-action fix (do soon):** the older create actions
+- ~~Multi-business create-action fix~~ — **fixed this session** (all create actions
+  + `setInvoiceSchedule` resolve the active org via `active_org_id ?? org_id`).
+  For reference, the original issue: the older create actions
   (`createLead/createCustomer/createProduct/createQuote/createInvoice`) still
   insert `org_id: profile.org_id` (HOME org). For a user whose ACTIVE org ≠ home,
   the RLS `with check (org_id = current_org_id())` will REJECT the insert. Fix:

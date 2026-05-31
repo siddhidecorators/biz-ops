@@ -152,9 +152,9 @@ export async function createQuote(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, active_org_id')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null }>();
   if (!profile) {
     return { ok: false, formError: 'Profile missing — try signing out and back in.' };
   }
@@ -173,8 +173,10 @@ export async function createQuote(
   }
 
   // Atomic per-org quote number from the next_quote_number Postgres function
+  const orgId = profile.active_org_id ?? profile.org_id;
+  if (!orgId) return { ok: false, formError: 'No active business.' };
   const { data: quoteNumberData, error: rpcErr } = await supabase.rpc('next_quote_number', {
-    p_org_id: profile.org_id,
+    p_org_id: orgId,
   });
   if (rpcErr || !quoteNumberData) {
     return {
@@ -195,7 +197,7 @@ export async function createQuote(
   const { data: inserted, error: insertErr } = await supabase
     .from('quotes')
     .insert({
-      org_id: profile.org_id,
+      org_id: orgId,
       quote_number: quoteNumberData as string,
       customer_id: v.customer_id,
       issue_date: v.issue_date,

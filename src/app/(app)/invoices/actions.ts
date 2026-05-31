@@ -143,12 +143,15 @@ export async function createInvoice(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, active_org_id')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null }>();
   if (!profile) {
     return { ok: false, formError: 'Profile missing — try signing out and back in.' };
   }
+
+  const orgId = profile.active_org_id ?? profile.org_id;
+  if (!orgId) return { ok: false, formError: 'No active business.' };
 
   const v = parsed.data;
   const totals = totalsOf(v.lines);
@@ -182,7 +185,7 @@ export async function createInvoice(
     supabase
       .from('orgs')
       .select('state, terms_text')
-      .eq('id', profile.org_id)
+      .eq('id', orgId)
       .maybeSingle<{ state: string | null; terms_text: string | null }>(),
   ]);
 
@@ -194,7 +197,7 @@ export async function createInvoice(
   const igstTotal = isIntraState ? 0 : totals.tax_total;
 
   const { data: invNumber, error: rpcErr } = await supabase.rpc('next_invoice_number', {
-    p_org_id: profile.org_id,
+    p_org_id: orgId,
   });
   if (rpcErr || !invNumber) {
     return { ok: false, formError: rpcErr?.message ?? 'Could not generate invoice number' };
@@ -203,7 +206,7 @@ export async function createInvoice(
   const { data: invoice, error: insertErr } = await supabase
     .from('invoices')
     .insert({
-      org_id: profile.org_id,
+      org_id: orgId,
       invoice_number: invNumber as string,
       customer_id: v.customer_id,
       issue_date: v.issue_date,
@@ -295,9 +298,9 @@ export async function setInvoiceSchedule(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, active_org_id')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null }>();
   if (!profile) return { ok: false, error: 'Profile missing — sign out and back in.' };
 
   // Verify the invoice is in the caller's org (defense in depth beyond RLS) and
@@ -307,7 +310,8 @@ export async function setInvoiceSchedule(
     .select('id, org_id, total')
     .eq('id', invoiceId)
     .maybeSingle<{ id: string; org_id: string; total: number | string }>();
-  if (!invoice || invoice.org_id !== profile.org_id) {
+  const orgId = profile.active_org_id ?? profile.org_id;
+  if (!invoice || invoice.org_id !== orgId) {
     return { ok: false, error: 'Invoice not found.' };
   }
 

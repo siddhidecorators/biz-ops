@@ -70,13 +70,16 @@ export async function createLead(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, active_org_id')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null }>();
   if (!profile) return { ok: false, formError: 'Profile missing — sign out and back in.' };
 
+  const orgId = profile.active_org_id ?? profile.org_id;
+  if (!orgId) return { ok: false, formError: 'No active business.' };
+
   const { error } = await supabase.from('leads').insert({
-    org_id: profile.org_id,
+    org_id: orgId,
     created_by: user.id,
     ...toRow(result.data),
   });
