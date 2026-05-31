@@ -382,9 +382,7 @@ function buildPdfData({
         ? 'EXPIRED'
         : quote.status === 'declined'
           ? 'DECLINED'
-          : quote.status === 'draft'
-            ? 'DRAFT'
-            : null,
+          : null,
     place_of_supply: pos ? STATE_BY_CODE[pos]?.name ?? pos : null,
     org: {
       name: org.name,
