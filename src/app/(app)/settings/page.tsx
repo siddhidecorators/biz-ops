@@ -6,40 +6,21 @@ import { OnboardingForm, type OrgRow } from '@/app/onboarding/onboarding-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { DeleteBusiness } from './_components/delete-business';
 import { AppBar } from '../_components/app-bar';
+import { BusinessSwitcher } from '../_components/business-switcher';
+import { getActiveOrgContext } from '@/lib/auth/active-org';
 
 export const metadata = { title: 'Settings' };
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/sign-in');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('org_id, full_name, role')
-    .eq('id', user.id)
-    .maybeSingle<{ org_id: string; full_name: string | null; role: 'owner' | 'admin' | 'staff' }>();
-
-  if (!profile) {
-    return (
-      <>
-        <AppBar title="Settings" back={{ href: '/' }} />
-        <main className="mx-auto max-w-md px-6 py-12">
-          <h1 className="text-xl font-medium">Profile not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Try signing out and back in.
-          </p>
-        </main>
-      </>
-    );
-  }
+  const ctx = await getActiveOrgContext(supabase);
+  if (!ctx) redirect('/sign-in');
+  if (!ctx.orgId) redirect('/onboarding');
 
   const { data: org } = await supabase
     .from('orgs')
     .select('*')
-    .eq('id', profile.org_id)
+    .eq('id', ctx.orgId)
     .maybeSingle<OrgRow>();
 
   if (!org) {
@@ -47,21 +28,24 @@ export default async function SettingsPage() {
       <>
         <AppBar title="Settings" back={{ href: '/' }} />
         <main className="mx-auto max-w-md px-6 py-12">
-          <h1 className="text-xl font-medium">Org not found</h1>
+          <h1 className="text-xl font-medium">Business not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Try switching businesses or signing back in.</p>
         </main>
       </>
     );
   }
 
+  const isOwner = ctx.role === 'owner';
+
   return (
     <>
-      <AppBar
-        title="Business settings"
-        subtitle={org.name}
-        back={{ href: '/' }}
-      />
+      <AppBar title="Business settings" subtitle={org.name} back={{ href: '/' }} />
       <main className="mx-auto max-w-2xl px-6 py-5">
-        {profile.role === 'owner' && (
+        <div className="mb-5">
+          <BusinessSwitcher currentOrgName={org.name} variant="row" />
+        </div>
+
+        {isOwner && (
           <Link href="/settings/team" className="mb-5 block">
             <Card size="sm" className="transition-colors hover:bg-muted active:bg-muted">
               <CardContent className="flex items-center gap-3">
@@ -85,12 +69,12 @@ export default async function SettingsPage() {
         </p>
         <OnboardingForm
           org={org}
-          defaultSignatory={profile.full_name ?? user.user_metadata?.full_name ?? ''}
-          defaultEmail={user.email ?? ''}
+          defaultSignatory={ctx.fullName ?? ''}
+          defaultEmail={ctx.email ?? ''}
           submitLabel="Save changes"
         />
 
-        {profile.role === 'owner' && <DeleteBusiness orgName={org.name} />}
+        {isOwner && <DeleteBusiness orgName={org.name} />}
       </main>
     </>
   );

@@ -49,10 +49,12 @@ const INVITABLE_ROLES: ReadonlyArray<OrgRole> = ORG_ROLES.filter(
 );
 
 export function TeamClient({
+  orgId,
   selfUserId,
   initialMembers,
   initialInvites,
 }: {
+  orgId: string;
   selfUserId: string;
   initialMembers: MemberRow[];
   initialInvites: InviteRow[];
@@ -70,7 +72,7 @@ export function TeamClient({
 
   return (
     <div className="space-y-5">
-      <InviteForm />
+      <InviteForm orgId={orgId} />
 
       <Card>
         <CardHeader>
@@ -82,7 +84,7 @@ export function TeamClient({
         <CardContent className="px-0">
           <ul className="divide-y divide-border">
             {members.map((m) => (
-              <MemberRowItem key={m.id} member={m} isSelf={m.id === selfUserId} />
+              <MemberRowItem key={m.id} member={m} isSelf={m.id === selfUserId} orgId={orgId} />
             ))}
           </ul>
         </CardContent>
@@ -109,7 +111,7 @@ export function TeamClient({
   );
 }
 
-function InviteForm() {
+function InviteForm({ orgId }: { orgId: string }) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<OrgRole>('staff');
@@ -127,20 +129,10 @@ function InviteForm() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error('Your session expired. Reload and sign in again.');
-      // Look up our own org_id so we can fill the row. MUST filter by our own
-      // id: the org-wide profiles SELECT policy means an unfiltered query
-      // returns every teammate's row, which would make .single() throw the
-      // moment the org has more than one member.
-      const { data: profile, error: profileErr } = await supabase
-        .from('profiles')
-        .select('org_id')
-        .eq('id', user.id)
-        .single<{ org_id: string }>();
-      if (profileErr) throw profileErr;
       const { data, error } = await supabase
         .from('org_invites')
         .insert({
-          org_id: profile.org_id,
+          org_id: orgId,
           email: input.email.trim().toLowerCase(),
           role: input.role,
           invited_by: user.id,
@@ -215,8 +207,8 @@ function InviteForm() {
       <CardHeader>
         <CardTitle className="text-base">Invite teammate</CardTitle>
         <p className="text-xs text-muted-foreground">
-          They&apos;ll join your org the first time they sign in with this
-          email via Google.
+          They&apos;ll join this business when they accept the invitation — or
+          the first time they sign in with this email.
         </p>
       </CardHeader>
       <CardContent>
@@ -279,9 +271,11 @@ function InviteForm() {
 function MemberRowItem({
   member: m,
   isSelf,
+  orgId,
 }: {
   member: MemberRow;
   isSelf: boolean;
+  orgId: string;
 }) {
   const queryClient = useQueryClient();
 
@@ -293,10 +287,11 @@ function MemberRowItem({
   >({
     mutationFn: async (nextRole) => {
       const supabase = createClient();
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: nextRole })
-        .eq('id', m.id);
+      const { error } = await supabase.rpc('set_member_role', {
+        p_org_id: orgId,
+        p_user_id: m.id,
+        p_role: nextRole,
+      });
       if (error) throw error;
     },
     onMutate: async (nextRole) => {
@@ -355,12 +350,12 @@ function MemberRowItem({
           </SelectContent>
         </Select>
       )}
-      {!isSelf && m.role !== 'owner' && <RemoveMemberButton member={m} />}
+      {!isSelf && m.role !== 'owner' && <RemoveMemberButton member={m} orgId={orgId} />}
     </li>
   );
 }
 
-function RemoveMemberButton({ member: m }: { member: MemberRow }) {
+function RemoveMemberButton({ member: m, orgId }: { member: MemberRow; orgId: string }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -372,12 +367,10 @@ function RemoveMemberButton({ member: m }: { member: MemberRow }) {
   >({
     mutationFn: async () => {
       const supabase = createClient();
-      // Detach by nulling org_id. Keeps the auth user alive; a future sign-in
-      // would then mint a fresh org via handle_new_user.
-      const { error } = await supabase
-        .from('profiles')
-        .update({ org_id: null })
-        .eq('id', m.id);
+      const { error } = await supabase.rpc('remove_member', {
+        p_org_id: orgId,
+        p_user_id: m.id,
+      });
       if (error) throw error;
     },
     onMutate: async () => {
@@ -419,8 +412,8 @@ function RemoveMemberButton({ member: m }: { member: MemberRow }) {
         <DialogHeader>
           <DialogTitle>Remove {m.full_name ?? 'this member'}?</DialogTitle>
           <DialogDescription>
-            They&apos;ll lose access to this org. The next time they sign in,
-            they&apos;ll start fresh with their own org.
+            They&apos;ll lose access to this business. Their other businesses, if
+            any, and their login are unaffected.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

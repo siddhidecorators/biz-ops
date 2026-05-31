@@ -77,12 +77,26 @@ export async function saveOnboarding(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, active_org_id')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null }>();
   if (!profile) return { ok: false, formError: 'Profile missing — try signing out and back in.' };
 
   const v = parsed.data;
+
+  // Target the ACTIVE business (a user can own several now). If the user somehow
+  // has no business yet, bootstrap one via the definer RPC.
+  let orgId = profile.active_org_id ?? profile.org_id;
+  if (!orgId) {
+    const { data: newOrg, error: createErr } = await supabase.rpc('create_additional_org', {
+      p_name: v.name,
+    });
+    if (createErr || !newOrg) {
+      return { ok: false, formError: createErr?.message ?? 'Could not create the business.' };
+    }
+    orgId = newOrg as string;
+  }
+
   const update = {
     name: v.name,
     phone: v.phone || null,
@@ -103,7 +117,7 @@ export async function saveOnboarding(
     settings_complete: true,
   };
 
-  const { error } = await supabase.from('orgs').update(update).eq('id', profile.org_id);
+  const { error } = await supabase.from('orgs').update(update).eq('id', orgId);
   if (error) return { ok: false, formError: error.message };
 
   redirect('/?saved=settings_saved');

@@ -7,11 +7,15 @@ export function AppBar({
   subtitle,
   back,
   right,
+  titleSlot,
 }: {
   title: string;
   subtitle?: string;
   back?: { href: string; label?: string };
   right?: React.ReactNode;
+  // When provided, replaces the plain title text (e.g. an interactive business
+  // switcher on the dashboard). `title` is still used for accessibility/SSR.
+  titleSlot?: React.ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background">
@@ -29,11 +33,15 @@ export function AppBar({
         )}
 
         <div className={cn('min-w-0 flex-1', back ? '' : 'pl-2')}>
-          <h1 className="truncate text-base leading-tight font-medium tracking-tight">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+          {titleSlot ?? (
+            <>
+              <h1 className="truncate text-base leading-tight font-medium tracking-tight">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+              )}
+            </>
           )}
         </div>
 

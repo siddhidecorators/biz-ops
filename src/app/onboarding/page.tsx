@@ -4,6 +4,27 @@ import { OnboardingForm, type OrgRow } from './onboarding-form';
 
 export const metadata = { title: 'Setup · SmallBiz Ops' };
 
+const BLANK_ORG: OrgRow = {
+  id: '',
+  name: '',
+  gstin: null,
+  pan: null,
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  state: null,
+  pincode: null,
+  phone: null,
+  email: null,
+  signatory_name: null,
+  bank_account_name: null,
+  bank_account_number: null,
+  bank_ifsc: null,
+  bank_name: null,
+  upi_id: null,
+  settings_complete: false,
+};
+
 export default async function OnboardingPage() {
   const supabase = await createClient();
   const {
@@ -13,9 +34,9 @@ export default async function OnboardingPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id, full_name')
+    .select('org_id, active_org_id, full_name')
     .eq('id', user.id)
-    .maybeSingle<{ org_id: string; full_name: string | null }>();
+    .maybeSingle<{ org_id: string | null; active_org_id: string | null; full_name: string | null }>();
 
   if (!profile) {
     return (
@@ -28,21 +49,13 @@ export default async function OnboardingPage() {
     );
   }
 
-  const { data: org } = await supabase
-    .from('orgs')
-    .select('*')
-    .eq('id', profile.org_id)
-    .maybeSingle<OrgRow>();
+  // Set up the ACTIVE business (could be a newly-created second business).
+  const activeOrgId = profile.active_org_id ?? profile.org_id;
+  const { data: org } = activeOrgId
+    ? await supabase.from('orgs').select('*').eq('id', activeOrgId).maybeSingle<OrgRow>()
+    : { data: null };
 
-  if (!org) {
-    return (
-      <main className="mx-auto max-w-md px-6 py-12">
-        <h1 className="text-xl font-semibold">Org not found</h1>
-      </main>
-    );
-  }
-
-  if (org.settings_complete) redirect('/');
+  if (org?.settings_complete) redirect('/');
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-8 pb-16">
@@ -53,7 +66,7 @@ export default async function OnboardingPage() {
         </p>
       </header>
       <OnboardingForm
-        org={org}
+        org={org ?? BLANK_ORG}
         defaultSignatory={profile.full_name ?? user.user_metadata?.full_name ?? ''}
         defaultEmail={user.email ?? ''}
       />

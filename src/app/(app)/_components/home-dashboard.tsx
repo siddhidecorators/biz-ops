@@ -21,6 +21,7 @@ import {
   type DashboardCounts,
 } from '@/lib/queries/dashboard';
 import { AppBar } from './app-bar';
+import { BusinessSwitcher } from './business-switcher';
 
 const groupINR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
@@ -43,6 +44,7 @@ export function HomeDashboard({
     <>
       <AppBar
         title={orgName}
+        titleSlot={<BusinessSwitcher currentOrgName={orgName} />}
         right={
           <Link
             href="/settings"

@@ -114,7 +114,7 @@ state-picker order · `33ccca9` dropdowns-show-name + lag · `4de9e88` perf ·
 
 Migrations live in `supabase/migrations/`. **CRITICAL: there is no migration
 tracking.** They are applied ad-hoc via the Supabase Management API (§6), not
-the CLI. As of 2026-05-31 **0001–0012 ARE applied** to the live DB. If you add a
+the CLI. As of 2026-05-31 **0001–0015 ARE applied** to the live DB. If you add a
 migration you must apply it yourself AND ideally set up the CLI.
 
 > A real bug happened because a migration existed in the repo but was never
@@ -161,6 +161,24 @@ migration you must apply it yourself AND ideally set up the CLI.
   the quote side (`quote_milestones`, RLS via the parent quote). Lets a quote
   carry a PROPOSED payment plan that renders on the quote PDF and copies into the
   invoice's schedule on conversion (see `convertQuoteToInvoice`).
+- **0013_memberships** *(applied this session)* — MULTI-BUSINESS. `memberships
+  (user_id, org_id, role)` = who-belongs-where; `profiles.active_org_id` = the
+  selected business. **`current_org_id()` is redefined** to return the active org
+  *only if a membership backs it* (a stale/foreign pointer = zero access — the
+  core tenant guard); `current_org_role()` reads from memberships. Definer helpers
+  `is_member_of`/`role_in_org`/`owner_count`; memberships RLS is recursion-free
+  (predicates call those helpers, never inline subqueries). Extends the 0005
+  trigger (validates `active_org_id` switches) + adds a last-owner trigger. RPCs:
+  `switch_active_org`, `create_additional_org`, `list_my_orgs`, `list_my_invites`,
+  `accept_invite`, `set_member_role`, `remove_member`. `handle_new_user` now also
+  writes a membership.
+- **0014_delete_org_multi** *(applied)* — membership-safe `delete_org()`: removes
+  the org's data + memberships, hard-deletes ONLY members with no other
+  membership, repoints survivors. Uses an `app.org_teardown` session GUC to bypass
+  the self-org + last-owner guards during teardown.
+- **0015_list_org_members** *(applied)* — `list_org_members()` definer RPC (joins
+  memberships→profiles for the active org) so the Team page shows co-members whose
+  home org differs.
 
 **Key FK on-delete notes (matter for delete/cascade):** `profiles.org_id` and
 `quotes/invoices.customer_id` are **ON DELETE RESTRICT**; `customers/products/
@@ -285,6 +303,17 @@ verify the change landed.
   `QuotePdfData.payment_schedule`. Quotes carry the same plan via `quote_milestones`
   (the shared editor is reused in the quote form); `convertQuoteToInvoice` copies a
   quote's plan into `invoice_milestones`.
+- **Multi-business (active org):** a user can belong to many orgs via `memberships`;
+  `profiles.active_org_id` is the selected one. Server code MUST resolve the active
+  org + role via **`getActiveOrgContext()`** (`src/lib/auth/active-org.ts`), NOT
+  `profiles.role`/`profiles.org_id`. The `(app)/layout.tsx` gate redirects to
+  `/onboarding` when there's no business or the active one isn't `settings_complete`
+  (onboarding + settings now target the ACTIVE org). Switching goes through
+  `switch_active_org` then a **hard cache reset** (`queryClient.clear()` + `del` the
+  persisted idb key `smallbiz-ops:rq-cache` + full reload) — see
+  `business-switcher.tsx`; never just invalidate, or the other business's rows
+  linger. Team writes use the org-scoped RPCs `set_member_role`/`remove_member`
+  (a user_id has many membership rows — always pass org_id).
 - **UI:** mobile-first, `max-w-md` lists/detail, `max-w-2xl` forms. One primary
   action per screen; quiet secondary; Edit/Delete demoted to small links. Don't
   re-clutter. **Copy the nearest existing implementation** — the codebase is
@@ -346,6 +375,13 @@ due …"), record-payment prefilled to the next installment, the schedule on the
 PDF, and an Edit-plan dialog on any invoice. **Quotes** can propose a plan too
 (quote form + PDF) that **carries into the invoice on conversion**. Migrations
 0011 + 0012 applied; deployed.
+
+**Multi-business (LIVE):** one login can own/belong to several businesses
+(`memberships`), **switch** the active one (header switcher → hard cache reset),
+**create** another business, and **accept invites** to others'. Team roles are
+per business; the active org + role come from `getActiveOrgContext`. Migrations
+0013–0015 applied; `delete_org` is membership-safe (a co-member in another
+business keeps their account).
 
 ---
 
@@ -450,9 +486,9 @@ PDF, and an Edit-plan dialog on any invoice. **Quotes** can propose a plan too
 src/
 ├── app/
 │   ├── (app)/                      authed group (bottom nav)
-│   │   ├── _components/            app-bar, bottom-nav, create-menu (NEW),
-│   │   │                           home-dashboard (redesigned), toast-from-query,
-│   │   │                           network-status-badge
+│   │   ├── _components/            app-bar (titleSlot), bottom-nav, create-menu,
+│   │   │                           home-dashboard, business-switcher (NEW: switch/
+│   │   │                           add/accept-invite), toast-from-query, network-status-badge
 │   │   ├── page.tsx                dashboard shell
 │   │   ├── customers/  products/  quotes/  leads/   (list/new/[id] + _components
 │   │   │                           + actions.ts each; lists server-hydrate)
@@ -480,10 +516,11 @@ src/
 │   ├── queries/                    customers, products, quotes, invoices, payments,
 │   │                               dashboard, reports, statements, leads, team
 │   │                               (fetchers now accept an optional SupabaseClient)
-│   ├── enums.ts  india.ts  format.ts  use-count-up.ts  milestones.ts (NEW: schedule logic)  utils.ts
+│   ├── auth/active-org.ts (NEW: getActiveOrgContext — active org + role)
+│   ├── enums.ts  india.ts  format.ts  use-count-up.ts  milestones.ts  utils.ts
 ├── proxy.ts                        auth refresh + public-path bypass
 public/fonts/Roboto-*.ttf           (no serif yet) · public/sw.js (v3)
-supabase/migrations/0001..0012.sql  (0011 invoice_milestones + 0012 quote_milestones, both applied)
+supabase/migrations/0001..0015.sql  (0013 memberships + 0014 delete_org_multi + 0015 list_org_members, applied)
 ```
 
 When in doubt, copy the nearest existing implementation of the same shape — the
