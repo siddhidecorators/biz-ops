@@ -41,6 +41,14 @@ type QuoteLineRow = {
   sort_order: number;
 };
 
+type QuoteMilestoneRow = {
+  label: string;
+  percent: number | string | null;
+  amount: number | string;
+  due_date: string | null;
+  sort_order: number;
+};
+
 export default async function EditQuotePage({
   params,
 }: {
@@ -53,7 +61,7 @@ export default async function EditQuotePage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [quoteRes, linesRes, customersRes, templatesRes, profileRes] = await Promise.all([
+  const [quoteRes, linesRes, milestonesRes, customersRes, templatesRes, profileRes] = await Promise.all([
     supabase
       .from('quotes')
       .select(
@@ -68,6 +76,12 @@ export default async function EditQuotePage({
       .eq('quote_id', id)
       .order('sort_order')
       .returns<QuoteLineRow[]>(),
+    supabase
+      .from('quote_milestones')
+      .select('label, percent, amount, due_date, sort_order')
+      .eq('quote_id', id)
+      .order('sort_order')
+      .returns<QuoteMilestoneRow[]>(),
     supabase
       .from('customers')
       .select('id, name, customer_type, phone, billing_state, billing_city')
@@ -144,6 +158,12 @@ export default async function EditQuotePage({
       quantity: String(l.quantity),
       rate: String(l.rate),
       tax_rate_percent: String(l.tax_rate_percent),
+    })),
+    milestones: (milestonesRes.data ?? []).map((m) => ({
+      label: m.label,
+      percent: m.percent == null ? null : Number(m.percent),
+      amount: Number(m.amount),
+      due_date: m.due_date,
     })),
   };
 

@@ -13,6 +13,12 @@ import { cn } from '@/lib/utils';
 import { formatINR, isoDate, addDays, round2, roundOffToRupee } from '@/lib/format';
 import { UNITS, UNIT_LABELS, type Unit } from '@/lib/enums';
 import { createQuote, type QuoteFormState } from '../actions';
+import {
+  PaymentPlanEditor,
+  rowsFromMilestones,
+  type EditorRow,
+} from '../../invoices/_components/payment-plan-editor';
+import { validatePlan, type MilestoneDraft } from '@/lib/milestones';
 
 export type QuoteInitial = {
   customer_id: string;
@@ -33,6 +39,12 @@ export type QuoteInitial = {
     quantity: string;
     rate: string;
     tax_rate_percent: string;
+  }>;
+  milestones?: Array<{
+    label: string;
+    percent: number | null;
+    amount: number;
+    due_date: string | null;
   }>;
 };
 
@@ -141,6 +153,7 @@ export function QuoteForm({
         }))
       : [blankLine('L0')],
   );
+  const [plan, setPlan] = useState<MilestoneDraft[]>([]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === customerId) ?? null,
@@ -196,6 +209,13 @@ export function QuoteForm({
     [lines],
   );
 
+  const planError = useMemo(() => validatePlan(plan, totals.total), [plan, totals.total]);
+  const hasInitialPlan = !!initial?.milestones && initial.milestones.length >= 2;
+  const initialPlanRows = useMemo<EditorRow[] | undefined>(
+    () => (hasInitialPlan ? rowsFromMilestones(initial!.milestones!, totals.total) : undefined),
+    [hasInitialPlan, initial, totals.total],
+  );
+
   function updateLine(uid: string, patch: Partial<LineDraft>) {
     setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, ...patch } : l)));
   }
@@ -216,6 +236,7 @@ export function QuoteForm({
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="lines" value={linesPayload} />
+      <input type="hidden" name="milestones" value={JSON.stringify(plan)} />
 
       <Card>
         <CardHeader>
@@ -352,6 +373,27 @@ export function QuoteForm({
           <div className="mt-2 border-t border-border pt-2">
             <TotalRow label="Total" value={totals.total} emphasize />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Payment plan</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Optional — propose an advance + balance (or custom milestones). It
+            shows on the quote PDF and carries into the invoice when you convert.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <PaymentPlanEditor
+            total={totals.total}
+            initialKind={hasInitialPlan ? 'custom' : 'full'}
+            initialRows={initialPlanRows}
+            onChange={setPlan}
+          />
+          {planError && plan.length > 0 && (
+            <p className="text-xs text-destructive">{planError}</p>
+          )}
         </CardContent>
       </Card>
 

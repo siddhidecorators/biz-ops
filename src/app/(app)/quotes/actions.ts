@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { UNITS, QUOTE_STATUSES, type QuoteStatus } from '@/lib/enums';
+import { resolveAmounts, validatePlan } from '@/lib/milestones';
 
 const lineSchema = z.object({
   template_id: z.string().uuid().nullable().optional(),
@@ -33,6 +34,25 @@ const lineSchema = z.object({
     ),
 });
 
+const milestoneSchema = z.object({
+  label: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().min(1, 'Each installment needs a label')),
+  percent: z
+    .union([z.number(), z.string(), z.null()])
+    .optional()
+    .transform((v) => (v === null || v === undefined || v === '' ? null : Number(v))),
+  amount: z
+    .union([z.string(), z.number()])
+    .transform((v) => Number(v))
+    .pipe(z.number().nonnegative()),
+  due_date: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
 const trimmed = z.string().optional().transform((v) => v?.trim() ?? '');
 
 const schema = z.object({
@@ -57,6 +77,18 @@ const schema = z.object({
       }
     })
     .pipe(z.array(lineSchema).min(1, 'Add at least one line item')),
+  milestones: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v) return [];
+      try {
+        return JSON.parse(v) as unknown[];
+      } catch {
+        return [];
+      }
+    })
+    .pipe(z.array(milestoneSchema)),
 });
 
 export type QuoteFormState = {
@@ -130,6 +162,16 @@ export async function createQuote(
   const v = parsed.data;
   const totals = totalsOf(v.lines);
 
+  let milestoneRows: { label: string; percent: number | null; amount: number; due_date: string | null }[] = [];
+  if (v.milestones.length > 0) {
+    milestoneRows = resolveAmounts(
+      v.milestones.map((m) => ({ label: m.label, percent: m.percent, amount: m.amount, due_date: m.due_date })),
+      totals.total,
+    );
+    const planErr = validatePlan(milestoneRows, totals.total);
+    if (planErr) return { ok: false, formError: planErr };
+  }
+
   // Atomic per-org quote number from the next_quote_number Postgres function
   const { data: quoteNumberData, error: rpcErr } = await supabase.rpc('next_quote_number', {
     p_org_id: profile.org_id,
@@ -197,6 +239,23 @@ export async function createQuote(
     // Roll back the quote so we don't end up with an empty one
     await supabase.from('quotes').delete().eq('id', inserted.id);
     return { ok: false, formError: `Couldn't save line items: ${linesErr.message}` };
+  }
+
+  if (milestoneRows.length > 0) {
+    const { error: msErr } = await supabase.from('quote_milestones').insert(
+      milestoneRows.map((m, i) => ({
+        quote_id: inserted.id,
+        label: m.label,
+        percent: m.percent,
+        amount: m.amount,
+        due_date: m.due_date,
+        sort_order: i,
+      })),
+    );
+    if (msErr) {
+      await supabase.from('quotes').delete().eq('id', inserted.id);
+      return { ok: false, formError: `Couldn't save the payment plan: ${msErr.message}` };
+    }
   }
 
   revalidatePath('/quotes');
@@ -278,6 +337,16 @@ export async function updateQuote(
     .maybeSingle<{ billing_state: string | null }>();
   const placeOfSupply = v.install_state || customer?.billing_state || null;
 
+  let milestoneRows: { label: string; percent: number | null; amount: number; due_date: string | null }[] = [];
+  if (v.milestones.length > 0) {
+    milestoneRows = resolveAmounts(
+      v.milestones.map((m) => ({ label: m.label, percent: m.percent, amount: m.amount, due_date: m.due_date })),
+      totals.total,
+    );
+    const planErr = validatePlan(milestoneRows, totals.total);
+    if (planErr) return { ok: false, formError: planErr };
+  }
+
   const { error: updErr } = await supabase
     .from('quotes')
     .update({
@@ -316,6 +385,22 @@ export async function updateQuote(
   const { error: linesErr } = await supabase.from('quote_lines').insert(lineRows);
   if (linesErr) {
     return { ok: false, formError: `Couldn't save line items: ${linesErr.message}` };
+  }
+
+  // Replace the proposed payment plan (delete-then-insert, like the lines).
+  await supabase.from('quote_milestones').delete().eq('quote_id', id);
+  if (milestoneRows.length > 0) {
+    const { error: msErr } = await supabase.from('quote_milestones').insert(
+      milestoneRows.map((m, i) => ({
+        quote_id: id,
+        label: m.label,
+        percent: m.percent,
+        amount: m.amount,
+        due_date: m.due_date,
+        sort_order: i,
+      })),
+    );
+    if (msErr) return { ok: false, formError: `Couldn't save the payment plan: ${msErr.message}` };
   }
 
   revalidatePath('/quotes');
@@ -526,6 +611,29 @@ export async function convertQuoteToInvoice(
   if (invLinesErr) {
     await supabase.from('invoices').delete().eq('id', invoice.id);
     return { ok: false, formError: `Couldn't copy line items: ${invLinesErr.message}` };
+  }
+
+  // Carry the proposed payment plan over to the invoice. Best-effort — a missing
+  // schedule shouldn't block conversion; it can be re-added on the invoice.
+  const { data: qMilestones } = await supabase
+    .from('quote_milestones')
+    .select('label, percent, amount, due_date, sort_order')
+    .eq('quote_id', quote.id)
+    .order('sort_order')
+    .returns<
+      { label: string; percent: number | string | null; amount: number | string; due_date: string | null; sort_order: number }[]
+    >();
+  if (qMilestones && qMilestones.length > 0) {
+    await supabase.from('invoice_milestones').insert(
+      qMilestones.map((m) => ({
+        invoice_id: invoice.id,
+        label: m.label,
+        percent: m.percent == null ? null : Number(m.percent),
+        amount: Number(m.amount),
+        due_date: m.due_date,
+        sort_order: m.sort_order,
+      })),
+    );
   }
 
   // Mark the quote converted + link to the invoice

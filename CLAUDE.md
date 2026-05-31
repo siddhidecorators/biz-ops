@@ -114,10 +114,8 @@ state-picker order · `33ccca9` dropdowns-show-name + lag · `4de9e88` perf ·
 
 Migrations live in `supabase/migrations/`. **CRITICAL: there is no migration
 tracking.** They are applied ad-hoc via the Supabase Management API (§6), not
-the CLI. As of 2026-05-31 **0001–0010 ARE applied** to the live DB; **0011 is
-written but NOT yet applied** (see below — apply it before the advance-billing
-feature works). If you add a migration you must apply it yourself AND ideally set
-up the CLI.
+the CLI. As of 2026-05-31 **0001–0012 ARE applied** to the live DB. If you add a
+migration you must apply it yourself AND ideally set up the CLI.
 
 > A real bug happened because a migration existed in the repo but was never
 > applied — always verify the live schema matches the repo; don't assume.
@@ -152,13 +150,17 @@ up the CLI.
   product_templates → customers → leads → org_invites → profiles → org → then the
   member **auth.users** rows. Granted to `authenticated`. **Not runtime-tested**
   (would destroy data) — first real use should be a throwaway business.
-- **0011_invoice_milestones** *(NEW — written, NOT yet applied as of this handoff)* —
+- **0011_invoice_milestones** *(applied + deployed this session)* —
   `invoice_milestones` (id, invoice_id FK cascade, label, percent, amount,
   due_date, sort_order). An OPTIONAL payment schedule layered on an invoice
   ("50% advance, balance on completion"). It does NOT change GST/totals/payments —
   milestones are settled *greedily* by the invoice's cumulative `amount_paid`
   (logic in `src/lib/milestones.ts`). RLS scoped through the parent invoice, like
   `invoice_lines`. **Apply this before using advance billing.**
+- **0012_quote_milestones** *(applied + deployed this session)* — same shape on
+  the quote side (`quote_milestones`, RLS via the parent quote). Lets a quote
+  carry a PROPOSED payment plan that renders on the quote PDF and copies into the
+  invoice's schedule on conversion (see `convertQuoteToInvoice`).
 
 **Key FK on-delete notes (matter for delete/cascade):** `profiles.org_id` and
 `quotes/invoices.customer_id` are **ON DELETE RESTRICT**; `customers/products/
@@ -280,7 +282,9 @@ verify the change landed.
   (`payment-schedule.tsx` → `setInvoiceSchedule` action, which re-checks org
   ownership). The schedule is a display/tracking overlay only — it never touches
   GST, totals, or the payments ledger; the PDF renders it via
-  `QuotePdfData.payment_schedule`.
+  `QuotePdfData.payment_schedule`. Quotes carry the same plan via `quote_milestones`
+  (the shared editor is reused in the quote form); `convertQuoteToInvoice` copies a
+  quote's plan into `invoice_milestones`.
 - **UI:** mobile-first, `max-w-md` lists/detail, `max-w-2xl` forms. One primary
   action per screen; quiet secondary; Edit/Delete demoted to small links. Don't
   re-clutter. **Copy the nearest existing implementation** — the codebase is
@@ -336,12 +340,12 @@ Flagship screens: **Home** (`_components/home-dashboard.tsx`) and **Invoice
 get-paid** (`invoices/_components/invoice-money-hero.tsx` → `InvoiceMoneyHero` +
 `InvoiceActions`).
 
-**Built this session, PENDING deploy:** advance / milestone billing — an optional
-payment schedule on invoices (advance + balance or custom), a milestone-aware
-get-paid hero ("Next: Advance ₹X due …"), record-payment prefilled to the next
-installment, the schedule on the PDF, and an Edit-plan dialog on any invoice
-(covers quote-converted ones). Goes live once migration **0011** is applied + a
-deploy. Build-verified (21 routes) + `tsc` clean.
+**Advance / milestone billing (LIVE):** optional payment schedule on invoices
+(advance + balance or custom) — milestone-aware get-paid hero ("Next: Advance ₹X
+due …"), record-payment prefilled to the next installment, the schedule on the
+PDF, and an Edit-plan dialog on any invoice. **Quotes** can propose a plan too
+(quote form + PDF) that **carries into the invoice on conversion**. Migrations
+0011 + 0012 applied; deployed.
 
 ---
 
@@ -424,10 +428,10 @@ deploy. Build-verified (21 routes) + `tsc` clean.
   wipe the data", that's a different RPC + a re-onboard path for a profile-less user.
 - **Online payments + auto-reminders** (Razorpay/Cashfree "Pay Now" + auto-
   reconcile; scheduled WhatsApp reminders) — highest-value next feature.
-- ~~Advance/milestone billing~~ — **built this session** (apply 0011 + deploy to
-  ship). Remaining follow-ups: quote-side payment-terms carry-through on
-  conversion, milestone-aware reporting, and showing the schedule on the public
-  `/i/[token]` page (the shared PDF already carries it).
+- ~~Advance/milestone billing~~ + ~~quote→invoice plan carry-through~~ —
+  **shipped** (migrations 0011 + 0012). Remaining follow-ups: milestone-aware
+  reporting, and showing the schedule on the public `/q` + `/i/[token]` web pages
+  (the shared PDFs already carry it).
 - **Expenses/purchases register → profit per project** (+ GST input credit).
 - **Product photos → visual quotes** (decor differentiator).
 - **Reports visualisation** (charts), **credit notes / invoice cancellation**
@@ -479,7 +483,7 @@ src/
 │   ├── enums.ts  india.ts  format.ts  use-count-up.ts  milestones.ts (NEW: schedule logic)  utils.ts
 ├── proxy.ts                        auth refresh + public-path bypass
 public/fonts/Roboto-*.ttf           (no serif yet) · public/sw.js (v3)
-supabase/migrations/0001..0011.sql  (0010 delete_org applied; 0011 invoice_milestones NOT yet applied)
+supabase/migrations/0001..0012.sql  (0011 invoice_milestones + 0012 quote_milestones, both applied)
 ```
 
 When in doubt, copy the nearest existing implementation of the same shape — the

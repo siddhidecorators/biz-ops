@@ -993,10 +993,12 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
           <Text style={styles.wordsValue}>{amountInIndianWords(data.totals.total)}</Text>
         </View>
 
-        {/* ── Payment schedule (invoices with an agreed plan) ───── */}
-        {!isQuote && data.payment_schedule && data.payment_schedule.length > 0 && (
+        {/* ── Payment schedule (invoice) / proposed terms (quote) ─ */}
+        {data.payment_schedule && data.payment_schedule.length > 0 && (
           <View style={styles.scheduleSection} wrap={false}>
-            <Text style={styles.scheduleLabel}>Payment schedule</Text>
+            <Text style={styles.scheduleLabel}>
+              {isQuote ? 'Proposed payment schedule' : 'Payment schedule'}
+            </Text>
             {data.payment_schedule.map((m, i) => (
               <View key={i} style={styles.schedRow}>
                 <Text style={styles.schedLabel}>

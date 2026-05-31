@@ -17,6 +17,7 @@ import { PdfDownloadButtons } from '../_components/pdf-download-button';
 import { ShareButton } from '../_components/share-button';
 import type { QuotePdfData } from '../_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
+import type { MilestoneRow } from '@/lib/milestones';
 
 export const metadata = { title: 'Quote' };
 
@@ -111,7 +112,7 @@ export default async function QuoteDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [quoteRes, linesRes, orgRes] = await Promise.all([
+  const [quoteRes, linesRes, milestonesRes, orgRes] = await Promise.all([
     supabase
       .from('quotes')
       .select(
@@ -131,6 +132,12 @@ export default async function QuoteDetailPage({
       .eq('quote_id', id)
       .order('sort_order')
       .returns<QuoteLineRow[]>(),
+    supabase
+      .from('quote_milestones')
+      .select('id, label, percent, amount, due_date, sort_order')
+      .eq('quote_id', id)
+      .order('sort_order')
+      .returns<MilestoneRow[]>(),
     (async () => {
       const { data: profile } = await supabase
         .from('profiles')
@@ -152,6 +159,7 @@ export default async function QuoteDetailPage({
   if (!quote) notFound();
 
   const lines = linesRes.data ?? [];
+  const milestones = milestonesRes.data ?? [];
   const org = orgRes.data ?? null;
   const orgState = org?.state ?? null;
   const placeOfSupply =
@@ -296,6 +304,33 @@ export default async function QuoteDetailPage({
           </CardContent>
         </Card>
 
+        {milestones.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Proposed payment plan</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <ul className="divide-y divide-border">
+                {milestones.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{m.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {m.percent != null && `${Number(m.percent)}%`}
+                        {m.due_date &&
+                          `${m.percent != null ? ' · ' : ''}by ${formatDateDMY(m.due_date)}`}
+                      </span>
+                    </div>
+                    <span className="tabular shrink-0 text-sm font-semibold">
+                      {formatINR(m.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         {quote.notes && (
           <Card>
             <CardHeader>
@@ -314,6 +349,7 @@ export default async function QuoteDetailPage({
               data={buildPdfData({
                 quote,
                 lines,
+                milestones,
                 org,
                 isIntraState,
                 taxSplit: { cgst, sgst, igst },
@@ -339,6 +375,7 @@ export default async function QuoteDetailPage({
               data={buildPdfData({
                 quote,
                 lines,
+                milestones,
                 org,
                 isIntraState,
                 taxSplit: { cgst, sgst, igst },
@@ -367,12 +404,14 @@ export default async function QuoteDetailPage({
 function buildPdfData({
   quote,
   lines,
+  milestones,
   org,
   isIntraState,
   taxSplit,
 }: {
   quote: QuoteRow;
   lines: QuoteLineRow[];
+  milestones: MilestoneRow[];
   org: OrgForPdf;
   isIntraState: boolean;
   taxSplit: { cgst: number; sgst: number; igst: number };
@@ -464,6 +503,12 @@ function buildPdfData({
     },
     notes: quote.notes,
     terms_text: org.terms_text,
+    payment_schedule: milestones.map((m) => ({
+      label: m.label,
+      amount: Number(m.amount),
+      due_date: m.due_date,
+      percent: m.percent == null ? null : Number(m.percent),
+    })),
   };
 }
 
