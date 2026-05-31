@@ -99,7 +99,7 @@ export function PickerField({
 
         <DialogPrimitive.Portal>
           <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-foreground/40 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
-          <DialogPrimitive.Popup className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[82vh] w-full max-w-md flex-col rounded-t-3xl bg-popover pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-lg ring-1 ring-foreground/10 duration-200 outline-none will-change-transform data-open:animate-in data-open:slide-in-from-bottom-4 data-closed:animate-out data-closed:slide-out-to-bottom-4">
+          <DialogPrimitive.Popup className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[82vh] w-full max-w-md flex-col rounded-t-3xl bg-popover pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-lg ring-1 ring-foreground/10 duration-150 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0">
             <div aria-hidden className="mx-auto mt-3 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-border" />
             <DialogPrimitive.Title className="shrink-0 px-4 py-2 text-sm font-semibold">
               {label}
