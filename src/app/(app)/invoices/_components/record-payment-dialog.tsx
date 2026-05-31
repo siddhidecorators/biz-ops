@@ -51,10 +51,12 @@ export function RecordPaymentDialog({
   invoiceId,
   invoiceTotal,
   invoiceNumber,
+  suggestedAmount,
 }: {
   invoiceId: string;
   invoiceTotal: number;
   invoiceNumber: string;
+  suggestedAmount?: number;
 }) {
   const queryClient = useQueryClient();
 
@@ -85,14 +87,20 @@ export function RecordPaymentDialog({
         paymentKeys.list(invoiceId),
       );
       const due = deriveInvoicePaymentState(fresh ?? [], invoiceTotal).amount_due;
-      setAmount(due.toFixed(2));
+      // Prefill the next installment's outstanding amount when there's a plan,
+      // else the full balance.
+      const seed =
+        suggestedAmount != null && suggestedAmount > 0.0099 && suggestedAmount <= due + 0.01
+          ? suggestedAmount
+          : due;
+      setAmount(seed.toFixed(2));
       setMode('upi');
       setDate(isoDate());
       setReference('');
       setNotes('');
       setFieldErrors({});
     }
-  }, [open, invoiceId, invoiceTotal, queryClient]);
+  }, [open, invoiceId, invoiceTotal, queryClient, suggestedAmount]);
 
   const { mutate, isPending } = useMutation<
     PaymentRow,
@@ -238,7 +246,18 @@ export function RecordPaymentDialog({
             {fieldErrors.amount && (
               <p className="text-xs text-destructive">{fieldErrors.amount}</p>
             )}
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
+              {suggestedAmount != null &&
+                suggestedAmount > 0.0099 &&
+                suggestedAmount < amount_due - 0.0099 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(suggestedAmount.toFixed(2))}
+                    className="rounded-full bg-brand-tint px-2.5 py-0.5 text-[11px] font-medium text-primary hover:bg-brand-tint/80"
+                  >
+                    Next due {formatINR(suggestedAmount)}
+                  </button>
+                )}
               <button
                 type="button"
                 onClick={() => setAmount(amount_due.toFixed(2))}

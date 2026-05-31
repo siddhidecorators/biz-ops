@@ -14,6 +14,8 @@ import { formatINR, round2, roundOffToRupee } from '@/lib/format';
 import { UNITS, UNIT_LABELS, type Unit } from '@/lib/enums';
 import { createInvoice, type InvoiceFormState } from '../actions';
 import type { CustomerOption, TemplateOption } from '../../quotes/_components/quote-form';
+import { PaymentPlanEditor } from './payment-plan-editor';
+import { validatePlan, type MilestoneDraft } from '@/lib/milestones';
 
 type LineDraft = {
   uid: string;
@@ -59,6 +61,7 @@ export function InvoiceForm({
   const [customerId, setCustomerId] = useState<string>(defaultCustomerId ?? '');
   const [issueDate, setIssueDate] = useState(today);
   const [lines, setLines] = useState<LineDraft[]>([blankLine('L0')]);
+  const [plan, setPlan] = useState<MilestoneDraft[]>([]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === customerId) ?? null,
@@ -112,6 +115,8 @@ export function InvoiceForm({
     [lines],
   );
 
+  const planError = useMemo(() => validatePlan(plan, totals.total), [plan, totals.total]);
+
   function updateLine(uid: string, patch: Partial<LineDraft>) {
     setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, ...patch } : l)));
   }
@@ -132,6 +137,7 @@ export function InvoiceForm({
   return (
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="lines" value={linesPayload} />
+      <input type="hidden" name="milestones" value={JSON.stringify(plan)} />
 
       <Card>
         <CardHeader>
@@ -251,6 +257,22 @@ export function InvoiceForm({
           <div className="mt-2 border-t border-border pt-2">
             <TotalRow label="Total" value={totals.total} emphasize />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Payment plan</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Optional — collect an advance now and the balance later, or set your
+            own milestones. Leave on “Full payment” for a single bill.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <PaymentPlanEditor total={totals.total} onChange={setPlan} />
+          {planError && plan.length > 0 && (
+            <p className="text-xs text-destructive">{planError}</p>
+          )}
         </CardContent>
       </Card>
 

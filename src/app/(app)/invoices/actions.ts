@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { UNITS } from '@/lib/enums';
+import { resolveAmounts, validatePlan } from '@/lib/milestones';
 
 const lineSchema = z.object({
   template_id: z.string().uuid().nullable().optional(),
@@ -30,6 +31,25 @@ const lineSchema = z.object({
     ),
 });
 
+const milestoneSchema = z.object({
+  label: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().min(1, 'Each installment needs a label')),
+  percent: z
+    .union([z.number(), z.string(), z.null()])
+    .optional()
+    .transform((v) => (v === null || v === undefined || v === '' ? null : Number(v))),
+  amount: z
+    .union([z.string(), z.number()])
+    .transform((v) => Number(v))
+    .pipe(z.number().nonnegative()),
+  due_date: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
 const trimmed = z.string().optional().transform((v) => v?.trim() ?? '');
 
 const schema = z.object({
@@ -48,6 +68,18 @@ const schema = z.object({
       }
     })
     .pipe(z.array(lineSchema).min(1, 'Add at least one line item')),
+  milestones: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v) return [];
+      try {
+        return JSON.parse(v) as unknown[];
+      } catch {
+        return [];
+      }
+    })
+    .pipe(z.array(milestoneSchema)),
 });
 
 export type InvoiceFormState = {
@@ -120,6 +152,23 @@ export async function createInvoice(
 
   const v = parsed.data;
   const totals = totalsOf(v.lines);
+
+  // Resolve the optional payment schedule against the real (server) total so
+  // the installments always tie out exactly, then validate the plan.
+  let milestoneRows: { label: string; percent: number | null; amount: number; due_date: string | null }[] = [];
+  if (v.milestones.length > 0) {
+    milestoneRows = resolveAmounts(
+      v.milestones.map((m) => ({
+        label: m.label,
+        percent: m.percent,
+        amount: m.amount,
+        due_date: m.due_date,
+      })),
+      totals.total,
+    );
+    const planErr = validatePlan(milestoneRows, totals.total);
+    if (planErr) return { ok: false, formError: planErr };
+  }
 
   // GST treatment: intra-state (CGST+SGST) when the customer's place of supply
   // matches the org's state, else inter-state (IGST). Mirrors the quote→invoice
@@ -209,6 +258,87 @@ export async function createInvoice(
     return { ok: false, formError: `Couldn't save line items: ${linesErr.message}` };
   }
 
+  if (milestoneRows.length > 0) {
+    const { error: msErr } = await supabase.from('invoice_milestones').insert(
+      milestoneRows.map((m, i) => ({
+        invoice_id: invoice.id,
+        label: m.label,
+        percent: m.percent,
+        amount: m.amount,
+        due_date: m.due_date,
+        sort_order: i,
+      })),
+    );
+    if (msErr) {
+      // Deleting the invoice cascades to its lines + milestones.
+      await supabase.from('invoices').delete().eq('id', invoice.id);
+      return { ok: false, formError: `Couldn't save the payment plan: ${msErr.message}` };
+    }
+  }
+
   revalidatePath('/invoices');
   redirect(`/invoices/${invoice.id}?saved=invoice_created`);
+}
+
+// Replace an invoice's payment schedule wholesale. Called from the Edit-plan
+// dialog on the detail page (so quote-converted invoices can get a plan too).
+// Passing an empty array clears the schedule (back to a single balance).
+export async function setInvoiceSchedule(
+  invoiceId: string,
+  milestones: { label: string; percent: number | null; amount: number; due_date: string | null }[],
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sign in expired. Reload and try again.' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('org_id')
+    .eq('id', user.id)
+    .maybeSingle<{ org_id: string }>();
+  if (!profile) return { ok: false, error: 'Profile missing — sign out and back in.' };
+
+  // Verify the invoice is in the caller's org (defense in depth beyond RLS) and
+  // read its total so the schedule resolves against the real figure.
+  const { data: invoice } = await supabase
+    .from('invoices')
+    .select('id, org_id, total')
+    .eq('id', invoiceId)
+    .maybeSingle<{ id: string; org_id: string; total: number | string }>();
+  if (!invoice || invoice.org_id !== profile.org_id) {
+    return { ok: false, error: 'Invoice not found.' };
+  }
+
+  const total = Number(invoice.total);
+  let rows: { label: string; percent: number | null; amount: number; due_date: string | null }[] = [];
+  if (milestones.length > 0) {
+    rows = resolveAmounts(milestones, total);
+    const planErr = validatePlan(rows, total);
+    if (planErr) return { ok: false, error: planErr };
+  }
+
+  const { error: delErr } = await supabase
+    .from('invoice_milestones')
+    .delete()
+    .eq('invoice_id', invoiceId);
+  if (delErr) return { ok: false, error: delErr.message };
+
+  if (rows.length > 0) {
+    const { error: insErr } = await supabase.from('invoice_milestones').insert(
+      rows.map((m, i) => ({
+        invoice_id: invoiceId,
+        label: m.label,
+        percent: m.percent,
+        amount: m.amount,
+        due_date: m.due_date,
+        sort_order: i,
+      })),
+    );
+    if (insErr) return { ok: false, error: insErr.message };
+  }
+
+  revalidatePath(`/invoices/${invoiceId}`);
+  return { ok: true };
 }

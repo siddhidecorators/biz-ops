@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { CalendarClockIcon } from 'lucide-react';
 import { Confetti, SuccessCheck } from '@/components/celebration';
 import { formatINR, formatDateDMY } from '@/lib/format';
 import { useTween } from '@/lib/use-count-up';
+import { settleMilestones, nextDueMilestone, type MilestoneRow } from '@/lib/milestones';
 import {
   paymentKeys,
   fetchPayments,
@@ -59,12 +61,14 @@ export function InvoiceMoneyHero({
   invoiceTotal,
   issueDate,
   gstType,
+  milestones,
   initialPayments,
 }: {
   invoiceId: string;
   invoiceTotal: number;
   issueDate: string;
   gstType: GstType;
+  milestones: MilestoneRow[];
   initialPayments: PaymentRow[];
 }) {
   const { amount_paid, amount_due, payment_status } = useDerivedState(
@@ -73,6 +77,7 @@ export function InvoiceMoneyHero({
     initialPayments,
   );
   const isPaid = payment_status === 'paid';
+  const nextDue = nextDueMilestone(settleMilestones(milestones, amount_paid));
 
   const tweenedDue = useTween(amount_due);
 
@@ -150,6 +155,19 @@ export function InvoiceMoneyHero({
           <span>of {formatINR(invoiceTotal)}</span>
         </div>
       </div>
+
+      {nextDue && milestones.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-brand-tint/60 px-3 py-2 text-sm">
+          <CalendarClockIcon className="size-4 shrink-0 text-primary" />
+          <span className="min-w-0">
+            <span className="font-medium text-foreground">Next: {nextDue.label}</span>{' '}
+            <span className="text-muted-foreground">
+              {formatINR(nextDue.outstanding)}
+              {nextDue.due_date && ` · due ${formatDateDMY(nextDue.due_date)}`}
+            </span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -161,6 +179,7 @@ export function InvoiceActions({
   shareToken,
   customerName,
   orgName,
+  milestones,
   pdfData,
   initialPayments,
 }: {
@@ -170,11 +189,13 @@ export function InvoiceActions({
   shareToken: string;
   customerName: string | null;
   orgName: string | null;
+  milestones: MilestoneRow[];
   pdfData: QuotePdfData | null;
   initialPayments: PaymentRow[];
 }) {
-  const { amount_due } = useDerivedState(invoiceId, invoiceTotal, initialPayments);
+  const { amount_paid, amount_due } = useDerivedState(invoiceId, invoiceTotal, initialPayments);
   if (amount_due <= 0.0099) return null;
+  const suggested = nextDueMilestone(settleMilestones(milestones, amount_paid))?.outstanding;
 
   return (
     <div className="space-y-3">
@@ -182,6 +203,7 @@ export function InvoiceActions({
         invoiceId={invoiceId}
         invoiceTotal={invoiceTotal}
         invoiceNumber={invoiceNumber}
+        suggestedAmount={suggested}
       />
       {pdfData && orgName && (
         <ShareButton

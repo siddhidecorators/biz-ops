@@ -550,6 +550,37 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     color: MUTED,
   },
+
+  // ─── Payment schedule (invoices) ───────────────────────────────
+  scheduleSection: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: RULE_HAIR,
+  },
+  scheduleLabel: {
+    fontSize: 8,
+    color: TERRACOTTA,
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+    fontFamily: 'Roboto-Bold',
+    marginBottom: 5,
+  },
+  schedRow: {
+    flexDirection: 'row',
+    paddingVertical: 2.5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: RULE_HAIR,
+  },
+  schedLabel: { flex: 1, fontSize: 9, color: INK_SOFT },
+  schedDue: { width: 120, fontSize: 8.5, color: MUTED },
+  schedAmount: {
+    width: 90,
+    fontSize: 9,
+    color: INK,
+    textAlign: 'right',
+    fontFamily: 'Roboto-Bold',
+  },
 });
 
 export type QuotePdfData = {
@@ -628,6 +659,13 @@ export type QuotePdfData = {
   };
   notes: string | null;
   terms_text: string | null;
+  /** Optional agreed payment schedule (advance + balance, etc.). Invoices only. */
+  payment_schedule?: Array<{
+    label: string;
+    amount: number;
+    due_date: string | null;
+    percent: number | null;
+  }>;
 };
 
 type TaxGroup = { rate: number; taxable: number; tax: number };
@@ -954,6 +992,25 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
           <Text style={styles.wordsLabel}>Amount in words</Text>
           <Text style={styles.wordsValue}>{amountInIndianWords(data.totals.total)}</Text>
         </View>
+
+        {/* ── Payment schedule (invoices with an agreed plan) ───── */}
+        {!isQuote && data.payment_schedule && data.payment_schedule.length > 0 && (
+          <View style={styles.scheduleSection} wrap={false}>
+            <Text style={styles.scheduleLabel}>Payment schedule</Text>
+            {data.payment_schedule.map((m, i) => (
+              <View key={i} style={styles.schedRow}>
+                <Text style={styles.schedLabel}>
+                  {m.label}
+                  {m.percent != null ? `  (${m.percent}%)` : ''}
+                </Text>
+                <Text style={styles.schedDue}>
+                  {m.due_date ? `Due ${formatDateDMY(m.due_date)}` : ''}
+                </Text>
+                <Text style={styles.schedAmount}>{formatINRForPdf(m.amount)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* ── Terms & conditions ────────────────────────────────── */}
         <View style={styles.termsSection}>

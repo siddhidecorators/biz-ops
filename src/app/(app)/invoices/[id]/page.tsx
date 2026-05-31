@@ -17,7 +17,9 @@ import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
 import { PaymentsLedger } from '../_components/payments-ledger';
 import { InvoiceMoneyHero, InvoiceActions } from '../_components/invoice-money-hero';
+import { PaymentSchedule } from '../_components/payment-schedule';
 import type { PaymentRow } from '@/lib/queries/payments';
+import type { MilestoneRow } from '@/lib/milestones';
 
 export const metadata = { title: 'Invoice' };
 
@@ -113,7 +115,7 @@ export default async function InvoiceDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [invoiceRes, linesRes, paymentsRes, orgRes] = await Promise.all([
+  const [invoiceRes, linesRes, paymentsRes, milestonesRes, orgRes] = await Promise.all([
     supabase
       .from('invoices')
       .select(
@@ -140,6 +142,12 @@ export default async function InvoiceDetailPage({
       .eq('invoice_id', id)
       .order('payment_date', { ascending: false })
       .returns<PaymentRow[]>(),
+    supabase
+      .from('invoice_milestones')
+      .select('id, label, percent, amount, due_date, sort_order')
+      .eq('invoice_id', id)
+      .order('sort_order')
+      .returns<MilestoneRow[]>(),
     (async () => {
       const { data: profile } = await supabase
         .from('profiles')
@@ -162,6 +170,7 @@ export default async function InvoiceDetailPage({
 
   const lines = linesRes.data ?? [];
   const payments = paymentsRes.data ?? [];
+  const milestones = milestonesRes.data ?? [];
   const org = orgRes.data ?? null;
   const isIntraState = invoice.gst_type === 'intra_state';
 
@@ -204,6 +213,7 @@ export default async function InvoiceDetailPage({
           invoiceTotal={Number(invoice.total)}
           issueDate={invoice.issue_date}
           gstType={invoice.gst_type}
+          milestones={milestones}
           initialPayments={payments}
         />
 
@@ -214,11 +224,19 @@ export default async function InvoiceDetailPage({
           shareToken={invoice.share_token}
           customerName={invoice.customers?.name ?? null}
           orgName={org?.name ?? null}
+          milestones={milestones}
           pdfData={
             org && invoice.customers
-              ? buildInvoicePdfData({ invoice, lines, org, isIntraState })
+              ? buildInvoicePdfData({ invoice, lines, milestones, org, isIntraState })
               : null
           }
+          initialPayments={payments}
+        />
+
+        <PaymentSchedule
+          invoiceId={invoice.id}
+          invoiceTotal={Number(invoice.total)}
+          milestones={milestones}
           initialPayments={payments}
         />
 
@@ -324,7 +342,7 @@ export default async function InvoiceDetailPage({
         <div className="space-y-3 pt-2">
           {org && invoice.customers && (
             <PdfDownloadButtons
-              data={buildInvoicePdfData({ invoice, lines, org, isIntraState })}
+              data={buildInvoicePdfData({ invoice, lines, milestones, org, isIntraState })}
             />
           )}
           {invoice.quote_id && (
@@ -346,11 +364,13 @@ export default async function InvoiceDetailPage({
 function buildInvoicePdfData({
   invoice,
   lines,
+  milestones,
   org,
   isIntraState,
 }: {
   invoice: InvoiceRow;
   lines: InvoiceLineRow[];
+  milestones: MilestoneRow[];
   org: OrgForPdf;
   isIntraState: boolean;
 }): QuotePdfData {
@@ -444,6 +464,12 @@ function buildInvoicePdfData({
     },
     notes: invoice.notes,
     terms_text: invoice.terms_text ?? org.terms_text,
+    payment_schedule: milestones.map((m) => ({
+      label: m.label,
+      amount: Number(m.amount),
+      due_date: m.due_date,
+      percent: m.percent == null ? null : Number(m.percent),
+    })),
   };
 }
 

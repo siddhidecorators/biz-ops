@@ -21,8 +21,9 @@ type CreateAction = {
   primary?: boolean;
 };
 
-// Invoices are created only by converting a quote, so "New invoice" is
-// intentionally absent — the quote is the start of the money flow.
+// Single entry point for every new record. A quote is the start of the money
+// flow (so it's primary), but invoices can also be billed directly via
+// /invoices/new without a quote first.
 const ACTIONS: CreateAction[] = [
   {
     href: '/quotes/new',
