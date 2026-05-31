@@ -114,7 +114,7 @@ state-picker order · `33ccca9` dropdowns-show-name + lag · `4de9e88` perf ·
 
 Migrations live in `supabase/migrations/`. **CRITICAL: there is no migration
 tracking.** They are applied ad-hoc via the Supabase Management API (§6), not
-the CLI. As of 2026-05-31 **0001–0016 ARE applied** to the live DB. If you add a
+the CLI. As of 2026-05-31 **0001–0017 ARE applied** to the live DB. If you add a
 migration you must apply it yourself AND ideally set up the CLI.
 
 > A real bug happened because a migration existed in the repo but was never
@@ -184,6 +184,13 @@ migration you must apply it yourself AND ideally set up the CLI.
   description) + `expense_category` enum. Org-scoped RLS (`current_org_id()`).
   Powers the cost register + profit-per-project (revenue − linked costs).
 
+- **0017_credit_notes** *(applied this session)* — `credit_notes` (linked to an
+  invoice; subtotal/tax/splits/total/reason) + `next_credit_note_number` RPC.
+  GST credit notes / cancellation: a "full" credit copies the invoice's exact
+  totals and marks it `status='cancelled'`; a "partial" credit takes a taxable
+  amount + GST%. Also patched `get_dashboard_counts` so cancelled invoices drop
+  out of unpaid/outstanding. Org-scoped RLS.
+
 **Key FK on-delete notes (matter for delete/cascade):** `profiles.org_id` and
 `quotes/invoices.customer_id` are **ON DELETE RESTRICT**; `customers/products/
 quotes/invoices.org_id` are CASCADE; `profiles.id → auth.users` is CASCADE.
@@ -213,6 +220,7 @@ unguessable `share_token`. **Never** add a broad `anon` RLS policy.
 - `/invoices` (+ `/new` ← NEW direct-create, `/[id]`)
 - `/leads` (+ `/new`, `/[id]`)
 - `/expenses` (+ `/new`) — cost register; profit-per-job shows on the invoice
+- `/credit-notes/[id]` — created from an invoice ("Cancel / credit note"); no list/nav
 - `/reports`
 - `/settings` (+ `/settings/team`, owner-only). Settings reuses `OnboardingForm`
   and now has an owner-only **Delete business** danger zone.
@@ -485,7 +493,7 @@ business keeps their account).
   select `active_org_id` too and use `active_org_id ?? org_id` (as `createExpense`
   already does). Latent until someone actually owns a 2nd business.
 - **Product photos → visual quotes** (decor differentiator).
-- **Reports visualisation** (charts), **credit notes / invoice cancellation**
+- **Reports visualisation** (charts), ~~credit notes / invoice cancellation~~ (**shipped**, 0017)
   (GST-compliant), **migration tracking** (Supabase CLI), **Hindi/bilingual**.
 - **Dark mode** is dormant (tokens exist, no provider) — wire `next-themes` or
   remove the dead tokens.
@@ -535,7 +543,7 @@ src/
 │   ├── enums.ts  india.ts  format.ts  use-count-up.ts  milestones.ts  utils.ts
 ├── proxy.ts                        auth refresh + public-path bypass
 public/fonts/Roboto-*.ttf           (no serif yet) · public/sw.js (v3)
-supabase/migrations/0001..0016.sql  (0013 memberships, 0014 delete_org_multi, 0015 list_org_members, 0016 expenses — all applied)
+supabase/migrations/0001..0017.sql  (0013 memberships, 0014 delete_org_multi, 0015 list_org_members, 0016 expenses — all applied)
 ```
 
 When in doubt, copy the nearest existing implementation of the same shape — the

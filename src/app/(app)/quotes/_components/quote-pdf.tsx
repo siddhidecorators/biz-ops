@@ -172,6 +172,11 @@ const styles = StyleSheet.create({
     color: INK,
     letterSpacing: 0.5,
   },
+  docRef: {
+    marginTop: 2,
+    fontSize: 8,
+    color: MUTED,
+  },
   docMetaRow: { flexDirection: 'row', marginTop: 6, gap: 14 },
   docMetaCol: { alignItems: 'flex-end' },
   docMetaLabel: {
@@ -584,8 +589,10 @@ const styles = StyleSheet.create({
 });
 
 export type QuotePdfData = {
-  doc_type: 'QUOTATION' | 'TAX INVOICE';
+  doc_type: 'QUOTATION' | 'TAX INVOICE' | 'CREDIT NOTE';
   doc_number: string;
+  /** Shown under the doc number, e.g. "Against Invoice INV/.../001" (credit notes). */
+  reference?: string | null;
   issue_date: string;
   valid_until?: string;
   reverse_charge?: boolean;
@@ -776,6 +783,7 @@ export function QuotePDF({ data }: { data: QuotePdfData }) {
             {!isQuote && <Text style={styles.docOriginal}>Original for Recipient</Text>}
             <Text style={styles.docType}>{data.doc_type}</Text>
             <Text style={styles.docNumber}>{data.doc_number}</Text>
+            {data.reference ? <Text style={styles.docRef}>{data.reference}</Text> : null}
             <View style={styles.docMetaRow}>
               <View style={styles.docMetaCol}>
                 <Text style={styles.docMetaLabel}>Date</Text>

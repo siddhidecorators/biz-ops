@@ -13,6 +13,8 @@ import { PlusIcon } from 'lucide-react';
 import { formatINR, formatDateDMY, round2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { fetchExpensesForInvoice } from '@/lib/queries/expenses';
+import { fetchCreditNotesForInvoice } from '@/lib/queries/credit-notes';
+import { CreditNoteDialog } from '../_components/credit-note-dialog';
 import { AppBar } from '../../_components/app-bar';
 import { PdfDownloadButtons } from '../../quotes/_components/pdf-download-button';
 import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
@@ -117,7 +119,7 @@ export default async function InvoiceDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
 
-  const [invoiceRes, linesRes, paymentsRes, milestonesRes, orgRes, expensesList] = await Promise.all([
+  const [invoiceRes, linesRes, paymentsRes, milestonesRes, orgRes, expensesList, creditNotes] = await Promise.all([
     supabase
       .from('invoices')
       .select(
@@ -166,6 +168,7 @@ export default async function InvoiceDetailPage({
         .maybeSingle<OrgForPdf>();
     })(),
     fetchExpensesForInvoice(id, supabase).catch(() => []),
+    fetchCreditNotesForInvoice(id, supabase).catch(() => []),
   ]);
 
   const invoice = invoiceRes.data;
@@ -393,6 +396,38 @@ export default async function InvoiceDetailPage({
           </Card>
         )}
 
+        {creditNotes.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Credit notes</CardTitle>
+            </CardHeader>
+            <CardContent className="px-0">
+              <ul className="divide-y divide-border">
+                {creditNotes.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/credit-notes/${c.id}`}
+                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {c.credit_note_number}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {c.reason || 'Credit note'} · {formatDateDMY(c.issue_date)}
+                        </span>
+                      </span>
+                      <span className="tabular shrink-0 text-sm font-semibold text-destructive">
+                        − {formatINR(c.total)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         <PaymentsLedger invoiceId={invoice.id} initialPayments={payments} />
 
         <div className="space-y-3 pt-2">
@@ -401,6 +436,11 @@ export default async function InvoiceDetailPage({
               data={buildInvoicePdfData({ invoice, lines, milestones, org, isIntraState })}
             />
           )}
+          <CreditNoteDialog
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoice_number}
+            isCancelled={invoice.status === 'cancelled'}
+          />
           {invoice.quote_id && (
             <div className="pt-1 text-center">
               <Link
