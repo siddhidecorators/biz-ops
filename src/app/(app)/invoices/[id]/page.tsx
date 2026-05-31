@@ -212,9 +212,13 @@ export default async function InvoiceDetailPage({
           invoiceTotal={Number(invoice.total)}
           invoiceNumber={invoice.invoice_number}
           shareToken={invoice.share_token}
-          customerPhone={invoice.customers?.phone ?? null}
           customerName={invoice.customers?.name ?? null}
           orgName={org?.name ?? null}
+          pdfData={
+            org && invoice.customers
+              ? buildInvoicePdfData({ invoice, lines, org, isIntraState })
+              : null
+          }
           initialPayments={payments}
         />
 

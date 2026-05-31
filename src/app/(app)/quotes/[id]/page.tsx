@@ -14,7 +14,7 @@ import { AppBar } from '../../_components/app-bar';
 import { DeleteQuoteButton } from '../_components/delete-button';
 import { QuoteActions } from '../_components/quote-actions';
 import { PdfDownloadButtons } from '../_components/pdf-download-button';
-import { ShareQuoteButton } from '../_components/share-quote-button';
+import { ShareButton } from '../_components/share-button';
 import type { QuotePdfData } from '../_components/quote-pdf';
 import { STATE_BY_CODE } from '@/lib/india';
 
@@ -309,13 +309,20 @@ export default async function QuoteDetailPage({
 
         <div className="space-y-2.5 pt-4">
           {/* Primary — send the quote to the customer */}
-          {org && quote.status !== 'converted_to_invoice' && (
-            <ShareQuoteButton
-              shareToken={quote.share_token}
-              customerPhone={quote.customers?.phone ?? null}
-              customerName={quote.customers?.name ?? null}
-              quoteNumber={quote.quote_number}
-              orgName={org.name}
+          {org && quote.customers && quote.status !== 'converted_to_invoice' && (
+            <ShareButton
+              data={buildPdfData({
+                quote,
+                lines,
+                org,
+                isIntraState,
+                taxSplit: { cgst, sgst, igst },
+              })}
+              token={quote.share_token}
+              kind="q"
+              message={`Hi ${quote.customers.name}, here's your quote ${quote.quote_number} from ${org.name}.`}
+              label="Share quote"
+              fileName={`${quote.quote_number.replace(/[/\\]/g, '_')}.pdf`}
             />
           )}
 

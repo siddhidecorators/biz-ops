@@ -18,7 +18,8 @@ import {
   type GstType,
 } from '@/lib/enums';
 import { RecordPaymentDialog } from './record-payment-dialog';
-import { RemindPaymentButton } from './remind-payment-button';
+import { ShareButton } from '../../quotes/_components/share-button';
+import type { QuotePdfData } from '../../quotes/_components/quote-pdf';
 
 const groupINR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
@@ -158,18 +159,18 @@ export function InvoiceActions({
   invoiceTotal,
   invoiceNumber,
   shareToken,
-  customerPhone,
   customerName,
   orgName,
+  pdfData,
   initialPayments,
 }: {
   invoiceId: string;
   invoiceTotal: number;
   invoiceNumber: string;
   shareToken: string;
-  customerPhone: string | null;
   customerName: string | null;
   orgName: string | null;
+  pdfData: QuotePdfData | null;
   initialPayments: PaymentRow[];
 }) {
   const { amount_due } = useDerivedState(invoiceId, invoiceTotal, initialPayments);
@@ -182,14 +183,16 @@ export function InvoiceActions({
         invoiceTotal={invoiceTotal}
         invoiceNumber={invoiceNumber}
       />
-      {orgName && (
-        <RemindPaymentButton
-          shareToken={shareToken}
-          customerPhone={customerPhone}
-          customerName={customerName}
-          invoiceNumber={invoiceNumber}
-          amountDue={amount_due}
-          orgName={orgName}
+      {pdfData && orgName && (
+        <ShareButton
+          data={pdfData}
+          token={shareToken}
+          kind="i"
+          message={`Hi ${customerName ?? 'there'}, a gentle reminder for invoice ${invoiceNumber} from ${orgName} — ${formatINR(
+            amount_due,
+          )} due. View & pay:`}
+          label="Share invoice"
+          fileName={`${invoiceNumber.replace(/[/\\]/g, '_')}.pdf`}
         />
       )}
     </div>
