@@ -8,6 +8,7 @@ export type ExpenseListRow = {
   amount: number | string;
   expense_date: string;
   vendor: string | null;
+  bill_number: string | null;
   description: string | null;
   invoice_id: string | null;
   invoices: { invoice_number: string } | null;
@@ -34,7 +35,7 @@ export async function fetchExpenses(client?: SupabaseClient): Promise<ExpenseLis
   const { data, error } = await supabase
     .from('expenses')
     .select(
-      'id, category, amount, expense_date, vendor, description, invoice_id, invoices(invoice_number)',
+      'id, category, amount, expense_date, vendor, bill_number, description, invoice_id, invoices(invoice_number)',
     )
     .order('expense_date', { ascending: false })
     .returns<ExpenseListRow[]>();

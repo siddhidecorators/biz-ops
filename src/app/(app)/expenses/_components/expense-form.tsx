@@ -77,14 +77,25 @@ export function ExpenseForm({
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="vendor">Paid to / vendor (optional)</Label>
-            <Input
-              id="vendor"
-              name="vendor"
-              placeholder="e.g. Asian Paints dealer"
-              className="h-11"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="vendor">Paid to / vendor (optional)</Label>
+              <Input
+                id="vendor"
+                name="vendor"
+                placeholder="e.g. Asian Paints dealer"
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="bill_number">Bill / invoice no. (optional)</Label>
+              <Input
+                id="bill_number"
+                name="bill_number"
+                placeholder="Supplier's bill no."
+                className="h-11"
+              />
+            </div>
           </div>
 
           <div className="space-y-1">

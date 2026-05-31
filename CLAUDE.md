@@ -114,7 +114,7 @@ state-picker order · `33ccca9` dropdowns-show-name + lag · `4de9e88` perf ·
 
 Migrations live in `supabase/migrations/`. **CRITICAL: there is no migration
 tracking.** They are applied ad-hoc via the Supabase Management API (§6), not
-the CLI. As of 2026-05-31 **0001–0017 ARE applied** to the live DB. If you add a
+the CLI. As of 2026-05-31 **0001–0018 ARE applied** to the live DB. If you add a
 migration you must apply it yourself AND ideally set up the CLI.
 
 > A real bug happened because a migration existed in the repo but was never
@@ -190,6 +190,9 @@ migration you must apply it yourself AND ideally set up the CLI.
   totals and marks it `status='cancelled'`; a "partial" credit takes a taxable
   amount + GST%. Also patched `get_dashboard_counts` so cancelled invoices drop
   out of unpaid/outstanding. Org-scoped RLS.
+- **0018_expense_bill_number** *(applied this session)* — `expenses.bill_number`
+  (the SUPPLIER's bill/purchase-invoice number — distinct from `expenses.invoice_id`,
+  which links to one of YOUR sales invoices for profit tracking).
 
 **Key FK on-delete notes (matter for delete/cascade):** `profiles.org_id` and
 `quotes/invoices.customer_id` are **ON DELETE RESTRICT**; `customers/products/

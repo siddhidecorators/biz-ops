@@ -16,6 +16,7 @@ const schema = z.object({
   category: z.enum(EXPENSE_CATEGORIES),
   expense_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a valid date'),
   vendor: trimmed,
+  bill_number: trimmed,
   description: trimmed,
   notes: trimmed,
   invoice_id: z
@@ -69,6 +70,7 @@ export async function createExpense(
     amount: v.amount,
     expense_date: v.expense_date,
     vendor: v.vendor || null,
+    bill_number: v.bill_number || null,
     description: v.description || null,
     notes: v.notes || null,
   });

@@ -124,7 +124,13 @@ function ExpenseRow({ expense: e }: { expense: ExpenseListRow }) {
     onSettled: () => queryClient.invalidateQueries({ queryKey: expenseKeys.list() }),
   });
 
-  const sub = [e.vendor, e.description].filter(Boolean).join(' · ');
+  const sub = [
+    e.vendor,
+    e.bill_number ? `Bill ${e.bill_number}` : null,
+    e.description,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <li>
