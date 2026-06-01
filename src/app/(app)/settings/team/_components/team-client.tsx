@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PickerField } from '@/components/ui/picker-field';
 import {
   Dialog,
   DialogClose,
@@ -230,22 +231,16 @@ function InviteForm({ orgId }: { orgId: string }) {
           </div>
           <div className="space-y-1">
             <Label htmlFor="invite_role">Role</Label>
-            <Select
-              name="role"
+            <PickerField
+              id="invite_role"
+              label="Role"
               value={role}
               onValueChange={(v) => setRole(v as OrgRole)}
-            >
-              <SelectTrigger id="invite_role" className="h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {INVITABLE_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {ORG_ROLE_LABELS[r]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={INVITABLE_ROLES.map((r) => ({
+                value: r,
+                label: ORG_ROLE_LABELS[r],
+              }))}
+            />
           </div>
           {error && (
             <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

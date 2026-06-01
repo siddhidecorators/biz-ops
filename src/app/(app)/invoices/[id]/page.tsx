@@ -213,7 +213,7 @@ export default async function InvoiceDetailPage({
         subtitle={invoice.customers?.name ?? 'Invoice'}
         back={{ href: '/invoices' }}
       />
-      <main className="mx-auto max-w-md space-y-4 px-5 py-5">
+      <main className="mx-auto max-w-md space-y-4 px-6 py-5">
         <InvoiceMoneyHero
           invoiceId={invoice.id}
           invoiceTotal={Number(invoice.total)}

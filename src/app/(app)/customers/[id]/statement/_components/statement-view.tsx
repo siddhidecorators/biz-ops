@@ -7,21 +7,16 @@ import { MessageCircleIcon, LinkIcon, CheckIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatINR, formatDateDMY } from '@/lib/format';
-import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/lib/enums';
+import { PAYMENT_BADGE, PAYMENT_STATUS_LABELS } from '@/lib/status-badges';
 import {
   statementKeys,
   fetchCustomerInvoices,
   totalDue,
   type StatementInvoice,
 } from '@/lib/queries/statements';
-
-const PAY_STYLE: Record<PaymentStatus, string> = {
-  unpaid: 'bg-rose-500/10 text-rose-700 ring-rose-500/30 dark:text-rose-300',
-  partial: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
-  paid: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
-};
 
 function waNumber(phone: string | null): string | null {
   if (!phone) return null;
@@ -87,7 +82,7 @@ export function StatementView({
   return (
     <main className="mx-auto max-w-md space-y-4 px-6 py-5">
       {/* Outstanding banner */}
-      <Card className={cn(due > 0 ? 'bg-brand-tint/40' : 'bg-emerald-500/5')}>
+      <Card className={cn(due > 0 ? 'bg-brand-tint/40' : 'bg-success-tint')}>
         <CardContent className="py-5 text-center">
           {due > 0 ? (
             <>
@@ -97,7 +92,7 @@ export function StatementView({
               <p className="mt-1 text-3xl font-bold text-primary">{formatINR(due)}</p>
             </>
           ) : (
-            <p className="text-base font-semibold text-emerald-700">✓ No dues — all settled</p>
+            <p className="text-base font-semibold text-success-strong">✓ No dues — all settled</p>
           )}
         </CardContent>
       </Card>
@@ -157,14 +152,9 @@ function StatementRow({ invoice: inv }: { invoice: StatementInvoice }) {
               <p className="truncate text-sm font-medium text-muted-foreground">
                 {inv.invoice_number}
               </p>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1',
-                  PAY_STYLE[inv.payment_status],
-                )}
-              >
+              <Badge variant={PAYMENT_BADGE[inv.payment_status]} size="sm" className="shrink-0 uppercase">
                 {PAYMENT_STATUS_LABELS[inv.payment_status]}
-              </span>
+              </Badge>
             </div>
             <div className="flex items-baseline justify-between pt-0.5 text-xs text-muted-foreground">
               <span>{formatDateDMY(inv.issue_date)}</span>

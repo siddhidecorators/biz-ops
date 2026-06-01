@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatINR } from '@/lib/format';
 import {
@@ -244,18 +245,18 @@ function ProductRowItem({
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="truncate text-base font-medium leading-tight">{p.name}</p>
             {p.verified ? (
-              <span className="shrink-0 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300">
+              <Badge variant="success" size="sm" className="shrink-0">
                 ✓ Verified
-              </span>
+              </Badge>
             ) : (
-              <span className="shrink-0 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-500/30 dark:text-amber-300">
+              <Badge variant="warning" size="sm" className="shrink-0">
                 Unverified
-              </span>
+              </Badge>
             )}
             {!p.is_active && (
-              <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-border">
+              <Badge variant="neutral" size="sm" className="shrink-0">
                 Inactive
-              </span>
+              </Badge>
             )}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">

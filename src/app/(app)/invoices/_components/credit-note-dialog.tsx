@@ -155,7 +155,7 @@ export function CreditNoteDialog({
         <DialogFooter>
           <DialogClose render={<Button variant="outline" type="button" />}>Cancel</DialogClose>
           <Button type="button" disabled={pending} onClick={submit}>
-            {pending ? 'Creating…' : 'Create credit note'}
+            {pending ? 'Saving…' : 'Save credit note'}
           </Button>
         </DialogFooter>
       </DialogContent>

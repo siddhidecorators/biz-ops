@@ -298,7 +298,7 @@ export function InvoiceForm({
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending} size="lg" className="h-12 flex-1 text-base">
-          {pending ? 'Creating…' : 'Create invoice'}
+          {pending ? 'Saving…' : 'Save invoice'}
         </Button>
         <Link
           href="/invoices"

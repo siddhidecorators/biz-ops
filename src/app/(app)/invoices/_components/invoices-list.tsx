@@ -3,23 +3,18 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { PlusIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { formatINR, formatDateDMY } from '@/lib/format';
-import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/lib/enums';
 import { Badge } from '@/components/ui/badge';
+import { PAYMENT_BADGE, PAYMENT_STATUS_LABELS } from '@/lib/status-badges';
 import {
   invoiceKeys,
   fetchInvoicesList,
   type InvoiceListRow,
 } from '@/lib/queries/invoices';
 import { AppBar } from '../../_components/app-bar';
-
-const PAY_VARIANT: Record<PaymentStatus, 'danger' | 'warning' | 'success'> = {
-  unpaid: 'danger',
-  partial: 'warning',
-  paid: 'success',
-};
 
 export function InvoicesList({ initialData }: { initialData?: InvoiceListRow[] }) {
   const {
@@ -52,6 +47,15 @@ export function InvoicesList({ initialData }: { initialData?: InvoiceListRow[] }
       <AppBar
         title="Invoices"
         subtitle={total > 0 ? `${total} total` : undefined}
+        right={
+          <Link
+            href="/invoices/new"
+            aria-label="New invoice"
+            className="inline-flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 active:opacity-90"
+          >
+            <PlusIcon className="size-5" />
+          </Link>
+        }
       />
 
       <main className="mx-auto max-w-md px-6 py-5">
@@ -123,13 +127,13 @@ function EmptyState() {
     <div className="rounded-2xl border border-dashed border-border bg-card/40 p-8 text-center">
       <p className="text-base font-medium">No invoices yet</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Invoices appear here once you convert an accepted quote.
+        Bill a customer directly, or convert an accepted quote into an invoice.
       </p>
       <Link
-        href="/quotes"
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg border border-border bg-card px-5 text-sm font-medium"
+        href="/invoices/new"
+        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground"
       >
-        Go to quotes
+        Create your first invoice
       </Link>
     </div>
   );
@@ -146,7 +150,7 @@ function InvoiceRow({ invoice: inv }: { invoice: InvoiceListRow }) {
                 {inv.invoice_number}
               </p>
               <Badge
-                variant={PAY_VARIANT[inv.payment_status]}
+                variant={PAYMENT_BADGE[inv.payment_status]}
                 size="sm"
                 className="shrink-0 uppercase"
               >

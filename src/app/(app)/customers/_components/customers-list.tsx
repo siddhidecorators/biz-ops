@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { CUSTOMER_TYPE_LABELS } from '@/lib/enums';
 import {
   customerKeys,
@@ -120,8 +121,7 @@ export function CustomersList({
         ) : (
           <ul
             className={
-              'divide-y divide-border overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 ' +
-              (isPlaceholderData ? 'opacity-70 transition-opacity' : '')
+              'space-y-2.5 ' + (isPlaceholderData ? 'opacity-70 transition-opacity' : '')
             }
           >
             {customers.map((c) => (
@@ -136,17 +136,18 @@ export function CustomersList({
 
 function CustomerListSkeleton() {
   return (
-    <ul
-      aria-hidden
-      className="divide-y divide-border overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10"
-    >
-      {Array.from({ length: 5 }).map((_, i) => (
-        <li key={i} className="flex items-center gap-3 px-4 py-3">
-          <span className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
-            <div className="h-3 w-3/5 animate-pulse rounded bg-muted" />
-          </div>
+    <ul aria-hidden className="space-y-2.5">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <li key={i}>
+          <Card size="sm">
+            <CardContent className="flex items-center gap-3">
+              <span className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-3/5 animate-pulse rounded bg-muted" />
+              </div>
+            </CardContent>
+          </Card>
         </li>
       ))}
     </ul>
@@ -181,35 +182,41 @@ function CustomerRow({ customer: c }: { customer: CustomerListRow }) {
   const initials = initialsFromName(c.name);
   return (
     <li>
-      <Link
-        href={`/customers/${c.id}`}
-        className="flex items-center gap-3 px-4 py-3 hover:bg-muted active:bg-muted"
-      >
-        <span
-          aria-hidden
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-tint text-sm font-medium text-primary"
-        >
-          {initials}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-medium leading-tight">{c.name}</p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {CUSTOMER_TYPE_LABELS[c.customer_type]}
-            {' · '}
-            {c.phone}
-            {c.billing_city ? ` · ${c.billing_city}` : ''}
-          </p>
-        </div>
-        <span aria-hidden className="text-muted-foreground">
-          ›
-        </span>
+      <Link href={`/customers/${c.id}`} className="block">
+        <Card size="sm" className="transition-colors hover:bg-muted/60">
+          <CardContent className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-tint text-sm font-medium text-primary"
+            >
+              {initials}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-medium leading-tight">{c.name}</p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {CUSTOMER_TYPE_LABELS[c.customer_type]}
+                {' · '}
+                {c.phone}
+                {c.billing_city ? ` · ${c.billing_city}` : ''}
+              </p>
+            </div>
+            <span aria-hidden className="text-muted-foreground">
+              ›
+            </span>
+          </CardContent>
+        </Card>
       </Link>
     </li>
   );
 }
 
+// First two alphanumerics → robust against names like "(walk-in)".
 function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const parts = name
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();

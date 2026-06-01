@@ -292,7 +292,16 @@ verify the change landed.
   **Still on Base UI Select (NOT migrated):** payment **mode** (in the
   record-payment dialog — left to avoid a sheet-in-dialog) and team **role**.
 - **Status pills → `Badge`** (`components/ui/badge.tsx`): variants neutral / brand
-  / success / warning / danger / outline. Map payment/quote/lead status → variant.
+  / **info** / success / warning / danger / outline. **Always map a status enum to a
+  variant via `src/lib/status-badges.ts`** (`QUOTE_BADGE` / `LEAD_BADGE` /
+  `PAYMENT_BADGE`, which also re-export the `*_LABELS`) — never hand-roll a colored
+  `<span>` with raw Tailwind palette (`bg-sky-/emerald-/amber-/rose-`). Render idiom:
+  `<Badge variant={QUOTE_BADGE[s]} size="sm" className="uppercase">{QUOTE_STATUS_LABELS[s]}</Badge>`.
+  Colour logic: neutral=idle, info(blue)=in-flight/no-action (sent/new),
+  warning=attention, success=good, danger=bad, brand=identity-change (converted/quoted).
+  *(Raw palette is now intentionally used ONLY in: products `CHAPTER_DOT` craft dots,
+  `network-status-badge`, the public `/i`,`/s`,`/q` brand banners, and the WhatsApp
+  `#25D366` button. A grep for `bg-(sky|emerald|amber|rose)-` should match only those.)*
 - **Sharing → `ShareButton`** (`quotes/_components/share-button.tsx`): builds the
   real PDF and calls `navigator.share({ files:[pdf], text, title })` (OS sheet →
   WhatsApp / Mail / anything), with the public link in the caption; falls back to
@@ -336,10 +345,18 @@ verify the change landed.
   `business-switcher.tsx`; never just invalidate, or the other business's rows
   linger. Team writes use the org-scoped RPCs `set_member_role`/`remove_member`
   (a user_id has many membership rows — always pass org_id).
-- **UI:** mobile-first, `max-w-md` lists/detail, `max-w-2xl` forms. One primary
-  action per screen; quiet secondary; Edit/Delete demoted to small links. Don't
-  re-clutter. **Copy the nearest existing implementation** — the codebase is
-  intentionally consistent.
+- **UI:** mobile-first, `max-w-md` lists/detail, `max-w-2xl` forms, page padding
+  **`px-6 py-5`** (every list + detail). **List rows** = `Card size="sm"` in a
+  `<ul className="space-y-2.5">` with a 4-row Card skeleton + dashed-border empty
+  state; every list has a circular `+` add button in the AppBar `right=` slot
+  (the global ＋ creates only quotes/invoices; per-section pages add their own).
+  **Forms** = `space-y-6`, sections wrapped in `Card`/`CardHeader`/`CardTitle`,
+  submit `h-12 flex-1` + outline Cancel link, label **"Save <noun>"** (not
+  "Create"). **Selects → `PickerField`** everywhere except two documented
+  exceptions: the record-payment **mode** Select (sheet-in-dialog risk) and the
+  per-row inline **role** Select in Team (compact inline). One primary action per
+  screen; Edit/Delete demoted to small links. **Copy the nearest existing
+  implementation** — the codebase is intentionally consistent.
 
 ---
 

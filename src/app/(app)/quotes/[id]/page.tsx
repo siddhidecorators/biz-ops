@@ -3,11 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  QUOTE_STATUS_LABELS,
   UNIT_LABELS,
   type QuoteStatus,
   type Unit,
 } from '@/lib/enums';
+import { Badge } from '@/components/ui/badge';
+import { QUOTE_BADGE, QUOTE_STATUS_LABELS } from '@/lib/status-badges';
 import { formatINR, formatDateDMY, round2 } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { AppBar } from '../../_components/app-bar';
@@ -89,15 +90,6 @@ type OrgForPdf = {
   bank_name: string | null;
   upi_id: string | null;
   terms_text: string | null;
-};
-
-const STATUS_STYLE: Record<QuoteStatus, string> = {
-  draft: 'bg-muted text-muted-foreground ring-border',
-  sent: 'bg-sky-500/10 text-sky-700 ring-sky-500/30 dark:text-sky-300',
-  accepted: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
-  declined: 'bg-rose-500/10 text-rose-700 ring-rose-500/30 dark:text-rose-300',
-  converted_to_invoice: 'bg-brand-tint text-primary ring-primary/30',
-  expired: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
 };
 
 export default async function QuoteDetailPage({
@@ -205,14 +197,9 @@ export default async function QuoteDetailPage({
       />
       <main className="mx-auto max-w-md space-y-4 px-6 py-5">
         <div className="flex items-center gap-2 text-xs">
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 font-medium uppercase tracking-wide ring-1',
-              STATUS_STYLE[quote.status],
-            )}
-          >
+          <Badge variant={QUOTE_BADGE[quote.status]} className="uppercase">
             {QUOTE_STATUS_LABELS[quote.status]}
-          </span>
+          </Badge>
           <span className="text-muted-foreground">
             Issued {formatDateDMY(quote.issue_date)} · Valid till {formatDateDMY(quote.valid_until)}
           </span>

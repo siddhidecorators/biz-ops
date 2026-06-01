@@ -3,7 +3,6 @@
 import { useActionState } from 'react';
 import { ArrowRightIcon, TrophyIcon, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { LeadStatus } from '@/lib/enums';
 import {
   setLeadStatus,
@@ -76,7 +75,7 @@ function StatusButton({
         variant={active ? 'default' : 'outline'}
         size="lg"
         disabled={pending || active}
-        className={cn('h-11 w-full', active && to === 'won' && 'bg-emerald-600 hover:bg-emerald-600')}
+        className="h-11 w-full"
       >
         <Icon className="size-4" />
         {active ? `Marked ${label.toLowerCase()}` : pending ? 'Saving…' : `Mark ${label.toLowerCase()}`}

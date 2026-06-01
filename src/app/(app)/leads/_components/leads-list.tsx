@@ -5,19 +5,13 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDateDMY } from '@/lib/format';
-import { LEAD_STATUS_LABELS, LEAD_STATUSES, type LeadStatus } from '@/lib/enums';
+import { LEAD_STATUSES, type LeadStatus } from '@/lib/enums';
+import { LEAD_BADGE, LEAD_STATUS_LABELS } from '@/lib/status-badges';
 import { leadKeys, fetchLeads, type LeadListRow } from '@/lib/queries/leads';
 import { AppBar } from '../../_components/app-bar';
-
-const STATUS_STYLE: Record<LeadStatus, string> = {
-  new: 'bg-sky-500/10 text-sky-700 ring-sky-500/30 dark:text-sky-300',
-  contacted: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
-  quoted: 'bg-brand-tint text-primary ring-primary/30',
-  won: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
-  lost: 'bg-muted text-muted-foreground ring-border',
-};
 
 export function LeadsList({ initialData }: { initialData?: LeadListRow[] }) {
   const { data, isPending, isError, error } = useQuery({
@@ -153,14 +147,9 @@ function LeadRow({ lead: l }: { lead: LeadListRow }) {
           <CardContent className="space-y-1">
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-base font-medium">{l.name}</p>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1',
-                  STATUS_STYLE[l.status],
-                )}
-              >
+              <Badge variant={LEAD_BADGE[l.status]} size="sm" className="shrink-0 uppercase">
                 {LEAD_STATUS_LABELS[l.status]}
-              </span>
+              </Badge>
             </div>
             <p className="truncate text-xs text-muted-foreground">
               {sub || 'No contact details'} · {formatDateDMY(l.created_at)}

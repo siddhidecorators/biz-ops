@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { formatINR, formatDateDMY } from '@/lib/format';
-import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/lib/enums';
+import { type PaymentStatus } from '@/lib/enums';
+import { Badge } from '@/components/ui/badge';
+import { PAYMENT_BADGE, PAYMENT_STATUS_LABELS } from '@/lib/status-badges';
 
 export const metadata = { title: 'Statement' };
 
@@ -33,11 +35,6 @@ type Statement = {
   total_due: number | string;
 };
 
-const PAY_STYLE: Record<PaymentStatus, string> = {
-  unpaid: 'bg-rose-500/10 text-rose-700 ring-rose-500/30',
-  partial: 'bg-amber-500/10 text-amber-700 ring-amber-500/30',
-  paid: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30',
-};
 
 async function fetchStatement(token: string): Promise<Statement | null> {
   const supabase = createSupabaseClient(
@@ -133,14 +130,9 @@ export default async function PublicStatementPage({
                 <span className="text-sm font-medium text-muted-foreground">
                   {inv.invoice_number}
                 </span>
-                <span
-                  className={
-                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1 ' +
-                    PAY_STYLE[inv.payment_status]
-                  }
-                >
+                <Badge variant={PAYMENT_BADGE[inv.payment_status]} size="sm" className="shrink-0 uppercase">
                   {PAYMENT_STATUS_LABELS[inv.payment_status]}
-                </span>
+                </Badge>
               </div>
               <div className="mt-1 flex items-baseline justify-between text-xs text-muted-foreground">
                 <span>{formatDateDMY(inv.issue_date)}</span>

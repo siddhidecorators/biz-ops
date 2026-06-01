@@ -6,24 +6,15 @@ import { useQuery } from '@tanstack/react-query';
 import { PlusIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { formatINR, formatDateDMY } from '@/lib/format';
-import { QUOTE_STATUS_LABELS, type QuoteStatus } from '@/lib/enums';
+import { QUOTE_BADGE, QUOTE_STATUS_LABELS } from '@/lib/status-badges';
 import {
   quoteKeys,
   fetchQuotesList,
   type QuoteListRow,
 } from '@/lib/queries/quotes';
 import { AppBar } from '../../_components/app-bar';
-
-const STATUS_STYLE: Record<QuoteStatus, string> = {
-  draft: 'bg-muted text-muted-foreground ring-border',
-  sent: 'bg-sky-500/10 text-sky-700 ring-sky-500/30 dark:text-sky-300',
-  accepted: 'bg-emerald-500/10 text-emerald-700 ring-emerald-500/30 dark:text-emerald-300',
-  declined: 'bg-rose-500/10 text-rose-700 ring-rose-500/30 dark:text-rose-300',
-  converted_to_invoice: 'bg-brand-tint text-primary ring-primary/30',
-  expired: 'bg-amber-500/10 text-amber-700 ring-amber-500/30 dark:text-amber-300',
-};
 
 export function QuotesList({ initialData }: { initialData?: QuoteListRow[] }) {
   const {
@@ -159,14 +150,9 @@ function QuoteRow({ quote: q }: { quote: QuoteListRow }) {
               <p className="truncate text-sm font-medium text-muted-foreground">
                 {q.quote_number}
               </p>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ring-1',
-                  STATUS_STYLE[q.status],
-                )}
-              >
+              <Badge variant={QUOTE_BADGE[q.status]} size="sm" className="shrink-0 uppercase">
                 {QUOTE_STATUS_LABELS[q.status]}
-              </span>
+              </Badge>
             </div>
             <p className="truncate text-base font-medium">{q.customers?.name ?? '—'}</p>
             {q.project_label && (
