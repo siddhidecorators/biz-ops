@@ -3,15 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
-import {
-  PlusIcon,
-  FileTextIcon,
-  ReceiptIcon,
-  UsersIcon,
-  UserPlusIcon,
-  PackageIcon,
-  WalletIcon,
-} from 'lucide-react';
+import { PlusIcon, FileTextIcon, ReceiptIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type CreateAction = {
@@ -22,9 +14,10 @@ type CreateAction = {
   primary?: boolean;
 };
 
-// Single entry point for every new record. A quote is the start of the money
-// flow (so it's primary), but invoices can also be billed directly via
-// /invoices/new without a quote first.
+// Quick-start for the money pipeline only — the two things worth creating from
+// anywhere. Everything else (customer, lead, product, expense) is created from
+// its own section's "+ Add" button (reachable via More), so nothing is listed
+// in both the ＋ menu and the More menu.
 const ACTIONS: CreateAction[] = [
   {
     href: '/quotes/new',
@@ -38,30 +31,6 @@ const ACTIONS: CreateAction[] = [
     label: 'New invoice',
     sub: 'Bill a customer directly',
     Icon: ReceiptIcon,
-  },
-  {
-    href: '/customers/new',
-    label: 'New customer',
-    sub: 'Add someone to bill',
-    Icon: UsersIcon,
-  },
-  {
-    href: '/leads/new',
-    label: 'New lead',
-    sub: 'Log an enquiry to follow up',
-    Icon: UserPlusIcon,
-  },
-  {
-    href: '/products/new',
-    label: 'New product or service',
-    sub: 'Add to your catalogue',
-    Icon: PackageIcon,
-  },
-  {
-    href: '/expenses/new',
-    label: 'New expense',
-    sub: 'Log a material or labour cost',
-    Icon: WalletIcon,
   },
 ];
 
