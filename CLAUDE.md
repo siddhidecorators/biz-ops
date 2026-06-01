@@ -232,10 +232,16 @@ unguessable `share_token`. **Never** add a broad `anon` RLS policy.
 `/sign-in`, `/auth/callback`, `/onboarding`, `/q/[token]`, `/i/[token]`,
 `/s/[token]`. Add new public prefixes there.
 
-**Bottom nav = Home / Customers / [＋ Create] / Quotes / Invoices.** The centre
-**＋** opens a bottom-sheet (`create-menu.tsx`): New quote / New invoice / New
-customer / New lead / New product. Products / Leads / Reports / Settings are
-reached from the dashboard ("Manage") / detail pages.
+**Bottom nav = Home / Quotes / [＋ Create] / Invoices / More** (`bottom-nav.tsx`).
+- Centre **＋** = `create-menu.tsx` bottom-sheet (creating only): New quote /
+  invoice / customer / lead / product / expense.
+- **More** = `more-menu.tsx` bottom-sheet (finding only), reachable from EVERY
+  screen: Customers, Products & services, Leads, Expenses, Reports, Settings.
+  `isMorePath(pathname)` highlights the tab when on any of those routes.
+- Rule: tabs/More are for *navigating*, ＋ is for *creating*. The old Home-only
+  "Manage" grid + the duplicate Settings gear were removed (2026-05-31) — Home is
+  now just the money hero + needs-attention. Business switcher still lives in the
+  Home app-bar title (`business-switcher.tsx`) and links to Settings.
 
 ---
 
@@ -512,9 +518,10 @@ business keeps their account).
 src/
 ├── app/
 │   ├── (app)/                      authed group (bottom nav)
-│   │   ├── _components/            app-bar (titleSlot), bottom-nav, create-menu,
-│   │   │                           home-dashboard, business-switcher (NEW: switch/
-│   │   │                           add/accept-invite), toast-from-query, network-status-badge
+│   │   ├── _components/            app-bar (titleSlot), bottom-nav (Home/Quotes/＋/
+│   │   │                           Invoices/More), create-menu, more-menu (NEW: secondary
+│   │   │                           nav hub), home-dashboard (hero + attention only),
+│   │   │                           business-switcher, toast-from-query, network-status-badge
 │   │   ├── page.tsx                dashboard shell
 │   │   ├── customers/  products/  quotes/  leads/   (list/new/[id] + _components
 │   │   │                           + actions.ts each; lists server-hydrate)

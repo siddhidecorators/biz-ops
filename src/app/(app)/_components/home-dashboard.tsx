@@ -5,12 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   PackageIcon,
   FileTextIcon,
-  BarChart3Icon,
-  UserPlusIcon,
-  SettingsIcon,
   ChevronRightIcon,
   CircleCheckIcon,
-  WalletIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatINR } from '@/lib/format';
@@ -46,15 +42,6 @@ export function HomeDashboard({
       <AppBar
         title={orgName}
         titleSlot={<BusinessSwitcher currentOrgName={orgName} />}
-        right={
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <SettingsIcon className="size-5" />
-          </Link>
-        }
       />
 
       <main className="mx-auto max-w-md space-y-6 px-5 py-6">
@@ -66,38 +53,6 @@ export function HomeDashboard({
         <MoneyHero data={data} loading={loading} errored={isError} />
 
         <AttentionList data={data} loading={loading} />
-
-        <section className="animate-rise space-y-2.5" style={{ animationDelay: '210ms' }}>
-          <p className="text-overline mb-2 px-1">Manage</p>
-          <NavRow
-            href="/products"
-            Icon={PackageIcon}
-            tone="brand"
-            title="Products"
-            subtitle="Your catalogue & pricing"
-          />
-          <NavRow
-            href="/leads"
-            Icon={UserPlusIcon}
-            tone="info"
-            title="Leads"
-            subtitle="Enquiries & follow-ups"
-          />
-          <NavRow
-            href="/expenses"
-            Icon={WalletIcon}
-            tone="warning"
-            title="Expenses"
-            subtitle="Costs & profit per job"
-          />
-          <NavRow
-            href="/reports"
-            Icon={BarChart3Icon}
-            tone="success"
-            title="Reports"
-            subtitle="GST, sales & who owes you"
-          />
-        </section>
       </main>
     </>
   );
@@ -272,38 +227,3 @@ function AttentionList({
   );
 }
 
-function NavRow({
-  href,
-  Icon,
-  tone,
-  title,
-  subtitle,
-}: {
-  href: string;
-  Icon: typeof PackageIcon;
-  tone: Tone;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <Link href={href} className="block">
-      <Card size="sm" className="press hover:bg-muted/50">
-        <CardContent className="flex items-center gap-3">
-          <span
-            className={cn(
-              'grid size-10 shrink-0 place-items-center rounded-full',
-              CHIP[tone],
-            )}
-          >
-            <Icon className="size-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{title}</p>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          </div>
-          <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}

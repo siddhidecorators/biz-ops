@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, UsersIcon, FileTextIcon, ReceiptIcon } from 'lucide-react';
+import { HomeIcon, FileTextIcon, ReceiptIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreateMenu } from './create-menu';
+import { MoreMenu, isMorePath } from './more-menu';
 
 type Tab = {
   href: string;
@@ -13,25 +14,20 @@ type Tab = {
   match: (path: string) => boolean;
 };
 
-// Daily-flow tabs. Products is reference data — reached from the Home grid and
-// the Create menu — so it's intentionally not a tab; Invoices takes its place.
+// The money pipeline owns the bar: Home · Quotes · ＋ · Invoices · More.
+// Everything secondary (Customers, Products, Leads, Expenses, Reports, Settings)
+// lives in the More sheet, reachable from every screen.
 const LEFT_TABS: Tab[] = [
   { href: '/', label: 'Home', Icon: HomeIcon, match: (p) => p === '/' },
-  {
-    href: '/customers',
-    label: 'Customers',
-    Icon: UsersIcon,
-    match: (p) => p === '/customers' || p.startsWith('/customers/'),
-  },
-];
-
-const RIGHT_TABS: Tab[] = [
   {
     href: '/quotes',
     label: 'Quotes',
     Icon: FileTextIcon,
     match: (p) => p === '/quotes' || p.startsWith('/quotes/'),
   },
+];
+
+const RIGHT_TABS: Tab[] = [
   {
     href: '/invoices',
     label: 'Invoices',
@@ -85,6 +81,9 @@ export function BottomNav() {
         {RIGHT_TABS.map((t) => (
           <TabLink key={t.href} tab={t} active={t.match(pathname)} />
         ))}
+        <li className="flex flex-1">
+          <MoreMenu active={isMorePath(pathname)} />
+        </li>
       </ul>
       <div aria-hidden className="h-[env(safe-area-inset-bottom)]" />
     </nav>
